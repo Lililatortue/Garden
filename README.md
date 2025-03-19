@@ -1,7 +1,7 @@
 # Garden
 Bloom distributed repository
 
-(liens vers Bloom)[https://github.com/colXavGig/Bloom]
+[liens vers Bloom](https://github.com/colXavGig/Bloom)
 
 # Table des matiere
 
