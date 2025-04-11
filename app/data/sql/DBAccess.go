@@ -17,12 +17,12 @@ func NewDBAccess(db *sql.DB) (*DBAccess, error) {
 		return nil, fmt.Errorf("error opening DB connection: %w", err)
 	}
 	access := &DBAccess{conn}
-	access.setup()
+	go access.setup()
 	return access, nil
 }
 
 func getConnectionString(user string, passwd string, adrr string, service string) string {
 	// NOTE: ssl should be enabled for production
-	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable",
+	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
 		user, passwd, adrr, service)
 }
