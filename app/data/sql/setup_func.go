@@ -15,7 +15,7 @@ func (db *DBAccess) createGardenTagTable() {
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,
 			signature VARCHAR(40) NOT NULL,
-			message STRING,
+			message TEXT,
 			timestamp TIMESTAMP NOT NULL,
 			tree_id INTEGER NOT NULL,
 			FOREIGN KEY (tree_id) REFERENCES FolderNode (id)
