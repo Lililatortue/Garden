@@ -10,19 +10,23 @@ type DBAccess struct {
 	*sql.DB
 }
 
-func NewDBAccess(db *sql.DB) (*DBAccess, error) {
-	connStr := getConnectionString("user", "pass", "addr", "service") // TODO: write corect connection string
-	conn, err := sql.Open("postgress", connStr)
+func NewDBAccess() (*DBAccess, error) {
+	connStr := getConnectionString("db", "db", "localhost", "5432", "garden")
+	conn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("error opening DB connection: %w", err)
 	}
+	fmt.Println("Connected to DB")
 	access := &DBAccess{conn}
-	go access.setup()
+	fmt.Println("DB access created")
+	fmt.Println("Setting up DB...")
+	access.setup()
+	fmt.Println("DB setup complete")
 	return access, nil
 }
 
-func getConnectionString(user string, passwd string, adrr string, service string) string {
+func getConnectionString(user string, passwd string, host string, port string, database string) string {
 	// NOTE: ssl should be enabled for production
-	return fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
-		user, passwd, adrr, service)
+	return fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
+		user, passwd, host, port, database)
 }

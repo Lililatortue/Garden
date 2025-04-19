@@ -1,0 +1,33 @@
+services:
+  
+  db:
+    container_name: garden-db
+    image: postgres
+    hostname: db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: db #${GARDEN_DB_USER}
+      POSTGRES_PASSWORD: db #${GARDEN_DB_PASSWORD}
+      POSTGRES_DB: garden #${GARDEN_DB_NAME}
+    ports:
+      - 5432:5432
+    networks:
+      - garden-network
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    depends_on:
+      - db
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - 8080:80
+    networks:
+      - garden-network
+
+networks:
+  garden-network:
+    name: garden-network
