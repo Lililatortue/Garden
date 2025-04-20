@@ -39,7 +39,8 @@ func (db *DBAccess) createFolderNodeTable() {
 	query := `CREATE TABLE IF NOT EXISTS FolderNode (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,  
-			signature VARCHAR(40) NOT NULL
+			signature VARCHAR(40) NOT NULL,
+			name VARCHAR(50) NOT NULL
 			)`
 
 	_, err := db.Exec(query)
@@ -55,6 +56,8 @@ func (db *DBAccess) createFileNodeTable() {
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,  
 			signature VARCHAR(40) NOT NULL,
+			name VARCHAR(50) NOT NULL,
+			content TEXT NOT NULL,
 			folder_id INTEGER NOT NULL,
 			FOREIGN KEY (folder_id) REFERENCES FolderNode (id)
 				ON DELETE CASCADE 
