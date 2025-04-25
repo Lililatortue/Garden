@@ -8,22 +8,22 @@ func (db *DBAccess) setup() {
 	db.createFolderNodeTable()
 	db.createGardenTagTable()
 	db.createFileNodeTable()
-	db.createFolderNodeAssociationTable()
+	db.createBranchTable()
 }
 
 func (db *DBAccess) createGardenTagTable() {
 	query := `CREATE TABLE IF NOT EXISTS GardenTag (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,
+			parent_id INTEGER,
 			signature VARCHAR(40) NOT NULL,
 			message TEXT,
 			timestamp TIMESTAMP NOT NULL,
 			tree_id INTEGER NOT NULL,
+			FOREIGN KEY (parent_id) REFERENCES GardenTag (id)
+			    ON DELETE CASCADE 
+			    ON UPDATE CASCADE,
 			FOREIGN KEY (tree_id) REFERENCES FolderNode (id)
-				ON DELETE CASCADE 
-				ON UPDATE CASCADE,
-			repository_id INTEGER NOT NULL,
-			FOREIGN KEY (repository_id) REFERENCES Repository (id)
 				ON DELETE CASCADE 
 				ON UPDATE CASCADE
 				)`
@@ -40,12 +40,36 @@ func (db *DBAccess) createFolderNodeTable() {
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,  
 			signature VARCHAR(40) NOT NULL,
-			name VARCHAR(50) NOT NULL
+			name VARCHAR(50) NOT NULL,
+            parent_id INTEGER,
+            FOREIGN KEY (parent_id) REFERENCES FolderNode (id)
 			)`
 
 	_, err := db.Exec(query)
 	if err != nil {
 		fmt.Println("Error creating FolderNode table")
+		fmt.Println(err.Error())
+		panic(err)
+	}
+}
+
+func (db *DBAccess) createBranchTable() {
+	query := `CREATE TABLE IF NOT EXISTS Branch (
+			id INTEGER PRIMARY KEY
+				GENERATED ALWAYS AS IDENTITY,  
+			name VARCHAR(50) NOT NULL,
+			tag_id INTEGER NOT NULL,
+			repository_id INTEGER NOT NULL,
+			FOREIGN KEY (tag_id) REFERENCES GardenTag (id)
+				ON DELETE CASCADE 
+				ON UPDATE CASCADE,
+			FOREIGN KEY (repository_id) REFERENCES Repository (id)
+				ON DELETE CASCADE 
+				ON UPDATE CASCADE
+			)`
+	_, err := db.Exec(query)
+	if err != nil {
+		fmt.Println("Error creating Branch table")
 		fmt.Println(err.Error())
 		panic(err)
 	}
@@ -71,34 +95,13 @@ func (db *DBAccess) createFileNodeTable() {
 	}
 }
 
-func (db *DBAccess) createFolderNodeAssociationTable() {
-	query := `CREATE TABLE IF NOT EXISTS FolderNodeAssociation (
-			id INTEGER PRIMARY KEY
-				GENERATED ALWAYS AS IDENTITY,
-			parent_id INTEGER NOT NULL,
-			child_id INTEGER NOT NULL,
-			FOREIGN KEY (parent_id) REFERENCES FolderNode (id)
-				ON DELETE CASCADE 
-				ON UPDATE CASCADE,
-			FOREIGN KEY (child_id) REFERENCES FolderNode (id)
-				ON DELETE CASCADE 
-				ON UPDATE CASCADE
-			)`
-	_, err := db.Exec(query)
-	if err != nil {
-		fmt.Println("Error creating FolderNodeAssociation table")
-		fmt.Println(err.Error())
-		panic(err)
-	}
-}
-
 func (db *DBAccess) createUserTable() {
 	query := `CREATE TABLE IF NOT EXISTS "User" (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,
-			username VARCHAR(40) NOT NULL,
+			username VARCHAR(40) NOT NULL UNIQUE,
 			password VARCHAR(40) NOT NULL,
-			email VARCHAR(40) NOT NULL
+			email VARCHAR(40) NOT NULL UNIQUE
 			)`
 	_, err := db.Exec(query)
 	if err != nil {
