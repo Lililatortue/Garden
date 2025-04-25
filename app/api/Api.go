@@ -1,11 +1,11 @@
 package api
 
 import (
+	"encoding/json"
+	"garden/data/sql"
+	"garden/types"
 	"log"
 	"net/http"
-	"garden/gardentag"
-	"garden/data/sql"
-	"encoding/json"
 )
 
 type Api struct {
@@ -29,7 +29,7 @@ func NewApi(port string) *Api {
 			Addr: ":" + port,
 			Handler: ApiMux{
 				ServeMux: http.NewServeMux(),
-				data: db,
+				data:     db,
 			},
 		},
 	}
@@ -37,22 +37,22 @@ func NewApi(port string) *Api {
 	return api
 }
 
-func (api *Api) setRoutes() {
-	api.
+func (api *ApiMux) setRoutes() {
+	api.setPushedRoute()
 }
 
 func (api *ApiMux) setPushedRoute() {
 	api.HandleFunc("/api/v1/push", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		log.Println("Pushed route")
-		
-		var tag gardentag.GardenTag
+
+		var tag types.GardenTag
 		if err := json.NewDecoder(r.Body).Decode(&tag); err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		api.data.
+		//api.data
 
 	})
 }

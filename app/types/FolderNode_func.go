@@ -1,4 +1,4 @@
-package hashtree
+package types
 
 import (
 	"iter"
