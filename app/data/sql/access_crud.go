@@ -11,7 +11,7 @@ func (db *DBAccess) GetUserByEmail(email string) (*types.User, error) {
 	var user types.User
 
 	stmt, err := db.Prepare(`
-		SELECT * FROM User WHERE email = $1
+		SELECT * FROM "GardenUser" WHERE email = $1
 		`)
 	if err != nil {
 		return nil, err
@@ -50,9 +50,9 @@ func (db *DBAccess) GetUserByEmail(email string) (*types.User, error) {
 
 func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
 	var user types.User
-	stmt, err := db.Prepare(`SELECT * FROM User WHERE username = $1`)
+	stmt, err := db.Prepare(`SELECT * FROM "GardenUser" WHERE username = $1`)
 	if err != nil {
-		return nil, fmt.Errorf("error preparing statement: %w", err)
+		return nil, fmt.Errorf("1error preparing statement: %w", err)
 	}
 	defer func(stmt *sql.Stmt) {
 		err := stmt.Close()
@@ -83,7 +83,7 @@ func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
 
 func (db *DBAccess) InsertUser(user *types.User) (int64, error) {
 	stmt, err := db.Prepare(`
-		INSERT INTO User (name, password, email)
+		INSERT INTO "GardenUser" (name, password, email)
 		VALUES ($1, $2, $3)
 		`)
 	if err != nil {
@@ -173,7 +173,7 @@ func (db *DBAccess) GetRepository(repoId int64) (*types.Repository, error) {
 	return &repo, nil
 }
 
-func (db *DBAccess) InsertRepository(repo_name string, userId int64) (int64, error) {
+func (db *DBAccess) InsertRepository(repoName string, userId int64) (int64, error) {
 	stmt, err := db.Prepare(`
 		INSERT INTO Repository (name, user_id)
 		VALUES ($1, $2)
@@ -188,7 +188,7 @@ func (db *DBAccess) InsertRepository(repo_name string, userId int64) (int64, err
 		}
 	}(stmt)
 
-	res, err := stmt.Exec(repo_name, userId)
+	res, err := stmt.Exec(repoName, userId)
 	if err != nil {
 		return -1, err
 	}

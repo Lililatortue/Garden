@@ -20,8 +20,7 @@ func NewDBAccess() (*DBAccess, error) {
 	access := &DBAccess{conn}
 	fmt.Println("DB access created")
 	fmt.Println("Setting up DB...")
-	access.setup()
-	fmt.Println("DB setup complete")
+	go access.setup()
 	return access, nil
 }
 

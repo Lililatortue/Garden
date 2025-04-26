@@ -25,6 +25,6 @@ func NewRepoWith(access *sql.DBAccess) *Repo {
 	}
 }
 
-func (repo *Repo) Close() {
-	repo.Access.Close()
+func (repo *Repo) Close() error {
+	return repo.Access.Close()
 }

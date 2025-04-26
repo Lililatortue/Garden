@@ -2,19 +2,29 @@ package main
 
 import (
 	"fmt"
-
-	"garden/data/sql"
+	"garden/api"
+	"log"
 )
 
 func main() {
 	fmt.Println("Hello World")
-	db, err := sql.NewDBAccess()
-	fmt.Println(db)
+	var (
+		port = "80"
+	)
+
+	apiSrv := api.NewApi(port)
+	fmt.Println("Starting API server on port", port)
+	err := apiSrv.ListenAndServe()
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Println(err.Error())
 	}
-	defer db.Close()
-	fmt.Println("Database connection established")
+
+	defer func() {
+		err = apiSrv.Close()
+		if err != nil {
+			log.Println(err.Error())
+		}
+		fmt.Println("API server stopped")
+	}()
 
 }

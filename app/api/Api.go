@@ -14,36 +14,53 @@ type Api struct {
 	*http.Server
 }
 
-type ApiMux struct {
+func (api *Api) Close() error {
+	err := api.Handler.(*Mux).Close()
+	if err != nil {
+		return err
+	}
+	return api.Server.Close()
+}
+
+type Mux struct {
 	*http.ServeMux
 	repoManager data.Repo
 }
 
-func NewApi(port string) *Api {
+func (mux *Mux) Close() error {
+	return mux.repoManager.Close()
+}
+
+func NewMux() *Mux {
 	db, err := sql.NewDBAccess()
 	if err != nil {
 		log.Println(err.Error())
 		return nil
 	}
 
-	api := &Api{
-		Server: &http.Server{
-			Addr: ":" + port,
-			Handler: ApiMux{
-				ServeMux:    http.NewServeMux(),
-				repoManager: *data.NewRepoWith(db),
-			},
-		},
+	mux := &Mux{
+		ServeMux:    http.NewServeMux(),
+		repoManager: *data.NewRepoWith(db),
 	}
 
-	return api
+	mux.setRoutes()
+	return mux
 }
 
-func (api *ApiMux) setRoutes() {
+func NewApi(port string) *Api {
+	return &Api{
+		Server: &http.Server{
+			Addr:    ":" + port,
+			Handler: NewMux(),
+		},
+	}
+}
+
+func (api *Mux) setRoutes() {
 	api.setPushedRoute()
 }
 
-func (api *ApiMux) setPushedRoute() {
+func (api *Mux) setPushedRoute() {
 	api.HandleFunc("POST /api/v1/{username}/{repo}/{branch}", func(w http.ResponseWriter, r *http.Request) {
 		var (
 			username   = r.PathValue("username")
@@ -62,6 +79,11 @@ func (api *ApiMux) setPushedRoute() {
 		user, err := api.repoManager.ReadUserByUsername(username)
 		if err != nil {
 			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": "Error reading user from database",
+			})
+			return
 		}
 
 		repo := user.GetRepository(repoName)
@@ -100,7 +122,7 @@ func (api *ApiMux) setPushedRoute() {
 			return
 		}
 
-		if branch.Head.Signature != tag.Signature {
+		if branch.Head.Signature != tag.Parent.Signature {
 			log.Println("Tag signature does not match branch head")
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(map[string]any{

@@ -9,6 +9,7 @@ func (db *DBAccess) setup() {
 	db.createGardenTagTable()
 	db.createFileNodeTable()
 	db.createBranchTable()
+	fmt.Println("DB setup complete")
 }
 
 func (db *DBAccess) createGardenTagTable() {
@@ -96,7 +97,7 @@ func (db *DBAccess) createFileNodeTable() {
 }
 
 func (db *DBAccess) createUserTable() {
-	query := `CREATE TABLE IF NOT EXISTS "User" (
+	query := `CREATE TABLE IF NOT EXISTS "GardenUser" (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,
 			username VARCHAR(40) NOT NULL UNIQUE,
@@ -117,7 +118,7 @@ func (db *DBAccess) createRepositoryTable() {
 				GENERATED ALWAYS AS IDENTITY,
 			name VARCHAR(40) NOT NULL,
 			user_id INTEGER NOT NULL,
-			FOREIGN KEY (user_id) REFERENCES "User" (id)
+			FOREIGN KEY (user_id) REFERENCES "GardenUser" (id)
 				ON DELETE CASCADE 
 				ON UPDATE CASCADE
 			)`
