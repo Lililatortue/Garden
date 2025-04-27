@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine AS builder
+FROM golang:1.24-alpine AS app_builder
 
 WORKDIR /app
 COPY ./app .
@@ -10,6 +10,7 @@ FROM alpine:latest
 RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
-COPY --from=builder /app/bloomhub .
+COPY --from=app_builder /app/bloomhub .
+COPY ./web ./web
 
 ENTRYPOINT ["./bloomhub"]

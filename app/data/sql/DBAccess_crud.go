@@ -83,18 +83,21 @@ func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
 
 func (db *DBAccess) InsertUser(user *types.User) (int64, error) {
 	stmt, err := db.Prepare(`
-		INSERT INTO "GardenUser" (name, password, email)
+		INSERT INTO "GardenUser" (username, password, email)
 		VALUES ($1, $2, $3)
+		RETURNING id
 		`)
 	if err != nil {
 		return -1, err
 	}
 
-	result, err := stmt.Exec(user.Name, user.Password, user.Email)
+	row := stmt.QueryRow(user.Name, user.Password, user.Email)
+	var id int64
+	err = row.Scan(&id)
 	if err != nil {
-		return 0, err
+		return -1, fmt.Errorf("error inserting user: %w", err)
 	}
-	return result.LastInsertId()
+	return id, nil
 }
 
 func (db *DBAccess) GetRepositoriesForUser(userId int64) ([]*types.Repository, error) {
@@ -177,6 +180,7 @@ func (db *DBAccess) InsertRepository(repoName string, userId int64) (int64, erro
 	stmt, err := db.Prepare(`
 		INSERT INTO Repository (name, user_id)
 		VALUES ($1, $2)
+		RETURNING id
 		`)
 	if err != nil {
 		return -1, err
@@ -188,12 +192,15 @@ func (db *DBAccess) InsertRepository(repoName string, userId int64) (int64, erro
 		}
 	}(stmt)
 
-	res, err := stmt.Exec(repoName, userId)
+	row := stmt.QueryRow(repoName, userId)
+
+	var id int64
+	err = row.Scan(&id)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("error scanning repository id: %w", err)
 	}
 
-	return res.LastInsertId()
+	return id, nil
 }
 
 func (db *DBAccess) GetBranches(repoId int64) ([]*types.Branch, error) {
@@ -235,9 +242,12 @@ func (db *DBAccess) GetBranches(repoId int64) ([]*types.Branch, error) {
 }
 
 func (db *DBAccess) InsertBranch(branch *types.Branch, repoID int64) (int64, error) {
-	stmt, err := db.Prepare(`Insert into Branch 
-							(name, tag_id, repository_id)
-							values ($1, $2, $3)`)
+	stmt, err := db.Prepare(`
+		Insert into Branch 
+			(name, tag_id, repository_id)
+		values ($1, $2, $3)
+		RETURNING id
+		`)
 	if err != nil {
 		return -1, fmt.Errorf("error inserting branch: %w", err)
 	}
@@ -248,26 +258,29 @@ func (db *DBAccess) InsertBranch(branch *types.Branch, repoID int64) (int64, err
 		}
 	}(stmt)
 
-	res, err := stmt.Exec(branch.Name, branch.Head.ID, repoID)
+	row := stmt.QueryRow(branch.Name, branch.Head.ID, repoID)
+
+	var id int64
+	err = row.Scan(&id)
 	if err != nil {
-		return -1, fmt.Errorf("error inserting branch: %w", err)
+		return -1, fmt.Errorf("error scanning branch id: %w", err)
 	}
 
-	return res.LastInsertId()
+	return id, nil
 }
 
-func (db *DBAccess) UpdateBranchHead(branch *types.Branch) (int64, error) {
+func (db *DBAccess) UpdateBranchHead(branch *types.Branch) error {
 	stmt, err := db.Prepare(`UPDATE Branch SET head_id = $1 WHERE id = $2`)
 	if err != nil {
-		return -1, fmt.Errorf("Error formating query: %w", err)
+		return fmt.Errorf("Error formating query: %w", err)
 	}
 
-	res, err := stmt.Exec(branch.Head.ID, branch.ID)
+	_, err = stmt.Exec(branch.Head.ID, branch.ID)
 	if err != nil {
-		return -1, fmt.Errorf("Error updating branch: %w", err)
+		return fmt.Errorf("Error updating branch: %w", err)
 	}
 
-	return res.LastInsertId()
+	return nil
 }
 
 func (db *DBAccess) GetGardenTag(tagId int64) (*types.GardenTag, error) {
@@ -327,10 +340,16 @@ func (db *DBAccess) InsertGardenTag(tag *types.GardenTag) (int64, error) {
 	)
 
 	if tag.Parent == nil {
-		query = `INSERT INTO GardenTag (signature, message, timestamp, tree_id) VALUES ($1, $2, $3, $4)`
+		query = `INSERT INTO GardenTag 
+    				(signature, message, timestamp, tree_id) 
+				 VALUES ($1, $2, $3, $4)
+				 RETURNING id`
 		params = []any{tag.Signature, tag.Message, tag.Timestamp, tag.Tree.ID}
 	} else {
-		query = `INSERT INTO GardenTag (parent_id, signature, message, timestamp, tree_id) VALUES ($1, $2, $3, $4, $5)`
+		query = `INSERT INTO GardenTag 
+    				(parent_id, signature, message, timestamp, tree_id) 
+				 VALUES ($1, $2, $3, $4, $5)
+				 RETURNING id`
 		params = []any{tag.Parent.ID, tag.Signature, tag.Message, tag.Timestamp, tag.Tree.ID}
 	}
 
@@ -345,12 +364,15 @@ func (db *DBAccess) InsertGardenTag(tag *types.GardenTag) (int64, error) {
 		}
 	}(stmt)
 
-	res, err := stmt.Exec(params)
+	row := stmt.QueryRow(params)
+
+	var id int64
+	err = row.Scan(&id)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("error scanning tag id: %w", err)
 	}
 
-	return res.LastInsertId()
+	return id, nil
 }
 
 func (db *DBAccess) GetFolder(folderId int64) (*types.FolderNode, error) {
@@ -441,11 +463,16 @@ func (db *DBAccess) GetTree(treeId int64) ([]*types.FolderNode, error) {
 }
 
 func (db *DBAccess) InsertFolder(folder *types.FolderNode, parentID *int64) (int64, error) {
-	var query string
+	var (
+		query  string
+		params = []interface{}{folder.Signature, folder.Filename}
+	)
 	if parentID == nil {
-		query = `INSERT INTO FolderNode (signature, name) VALUES ($1, $2)`
+		query = `INSERT INTO FolderNode (signature, name) VALUES ($1, $2) RETURNING id`
 	} else {
-		query = `INSERT INTO FolderNode (signature, name, parent_id) VALUES ($1, $2, $3)`
+		query = `INSERT INTO FolderNode (signature, name, parent_id) VALUES ($1, $2, $3) RETURNING id`
+		params = append(params, *parentID)
+
 	}
 
 	stmt, err := db.Prepare(query)
@@ -458,16 +485,16 @@ func (db *DBAccess) InsertFolder(folder *types.FolderNode, parentID *int64) (int
 			log.Println(err.Error())
 		}
 	}(stmt)
-	params := []interface{}{folder.Signature, folder.Filename}
-	if parentID != nil {
-		params = append(params, *parentID)
-	}
-	res, err := stmt.Exec(params...)
+
+	row := stmt.QueryRow(params...)
+
+	var id int64
+	err = row.Scan(&id)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("error scanning folder id: %w", err)
 	}
 
-	return res.LastInsertId()
+	return id, nil
 }
 
 func (db *DBAccess) GetFilesFor(folderId int64) ([]*types.FileNode, error) {
@@ -507,6 +534,7 @@ func (db *DBAccess) InsertFile(file *types.FileNode, folderId int64) (int64, err
 		INSERT INTO FileNode 
 		  (signature, name, content, folder_id)
 		VALUES ($1, $2, $3, $4)
+		RETURNING id
 		`)
 	if err != nil {
 		return -1, err
@@ -518,9 +546,18 @@ func (db *DBAccess) InsertFile(file *types.FileNode, folderId int64) (int64, err
 		}
 	}(stmt)
 
-	res, err := stmt.Exec(file.Signature, file.Filename, file.Content, folderId)
+	row, err := stmt.Query(file.Signature, file.Filename, file.Content, folderId)
 	if err != nil {
 		return -1, err
 	}
-	return res.LastInsertId()
+	var id int64
+	if row.Next() {
+		err = row.Scan(&id)
+		if err != nil {
+			return -1, fmt.Errorf("error scanning file id: %w", err)
+		}
+		return id, nil
+	}
+
+	return -1, ErrNoReturningID
 }

@@ -1,4 +1,15 @@
 services:
+
+  bloomhub:
+    container_name: bloomhub
+    pull_policy: build
+    build:
+      dockerfile: ./Dockerfile
+    develop:
+      watch:
+        - action: rebuild
+          path: ./app
+
   
   db:
     container_name: garden-db

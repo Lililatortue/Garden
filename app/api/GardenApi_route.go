@@ -2,65 +2,41 @@ package api
 
 import (
 	"encoding/json"
-	"garden/data"
-	"garden/data/sql"
 	"garden/types"
 	"log"
 	"net/http"
 	"strconv"
 )
 
-type Api struct {
-	*http.Server
-}
-
-func (api *Api) Close() error {
-	err := api.Handler.(*Mux).Close()
-	if err != nil {
-		return err
-	}
-	return api.Server.Close()
-}
-
-type Mux struct {
-	*http.ServeMux
-	repoManager data.Repo
-}
-
-func (mux *Mux) Close() error {
-	return mux.repoManager.Close()
-}
-
-func NewMux() *Mux {
-	db, err := sql.NewDBAccess()
-	if err != nil {
-		log.Println(err.Error())
-		return nil
-	}
-
-	mux := &Mux{
-		ServeMux:    http.NewServeMux(),
-		repoManager: *data.NewRepoWith(db),
-	}
-
-	mux.setRoutes()
-	return mux
-}
-
-func NewApi(port string) *Api {
-	return &Api{
-		Server: &http.Server{
-			Addr:    ":" + port,
-			Handler: NewMux(),
-		},
-	}
-}
-
-func (api *Mux) setRoutes() {
+func (api *GardenApi) setRoutes() {
 	api.setPushedRoute()
+	api.setTestRoutes()
 }
 
-func (api *Mux) setPushedRoute() {
+func (api *GardenApi) setTestRoutes() {
+
+	test := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// Write requestbody to response body
+		err := r.Write(w)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": "Error writing response",
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+
+	api.HandleFunc("GET /api/test", test)
+	api.HandleFunc("POST /api/test", test)
+}
+
+func (api *GardenApi) setPushedRoute() {
 	api.HandleFunc("POST /api/v1/{username}/{repo}/{branch}", func(w http.ResponseWriter, r *http.Request) {
 		var (
 			username   = r.PathValue("username")
@@ -144,8 +120,7 @@ func (api *Mux) setPushedRoute() {
 			return
 		}
 
-		_, err = api.repoManager.UpdateBranchHead(branch)
-		if err != nil {
+		if err := api.repoManager.UpdateBranchHead(branch); err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(map[string]string{
