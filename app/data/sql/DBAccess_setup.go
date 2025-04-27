@@ -1,15 +1,33 @@
 package sql
 
-import "fmt"
+import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"garden/types"
+	"log"
+)
 
 func (db *DBAccess) setup() {
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
+
 	db.createUserTable()
 	db.createRepositoryTable()
 	db.createFolderNodeTable()
 	db.createGardenTagTable()
 	db.createFileNodeTable()
 	db.createBranchTable()
-	fmt.Println("DB setup complete")
+
+	// create default user and repository
+	userId := db.setupDefaultUser()
+	_ = db.setupDefaultRepository(userId)
+
+	log.Println("DB setup complete")
 }
 
 func (db *DBAccess) createGardenTagTable() {
@@ -128,4 +146,35 @@ func (db *DBAccess) createRepositoryTable() {
 		fmt.Println(err.Error())
 		panic(err)
 	}
+}
+
+func (db *DBAccess) setupDefaultUser() int64 {
+	user := types.User{
+		Name:     "test",
+		Password: "test",
+		Email:    "test@email.com",
+	}
+	u, err := db.GetUserByUsername(user.Name)
+	if err != nil {
+		if !errors.As(err, &sql.ErrNoRows) {
+			panic(fmt.Errorf("error checking for default user: %w", err))
+		}
+	} else {
+		return u.ID
+	}
+
+	id, err := db.InsertUser(&user)
+	if err != nil {
+		panic(fmt.Errorf("error creating default user: %w", err))
+
+	}
+	return id
+}
+
+func (db *DBAccess) setupDefaultRepository(userId int64) int64 {
+	id, err := db.InsertRepository("test", userId)
+	if err != nil {
+		panic(fmt.Errorf("error creating default repository: %w", err))
+	}
+	return id
 }

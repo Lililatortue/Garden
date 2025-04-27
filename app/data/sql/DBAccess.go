@@ -4,24 +4,25 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
+	"log"
 )
 
 type DBAccess struct {
 	*sql.DB
 }
 
-func NewDBAccess() (*DBAccess, error) {
+func NewDBAccess() *DBAccess {
 	connStr := getConnectionString("db", "db", "localhost", "5432", "garden")
 	conn, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return nil, fmt.Errorf("error opening DB connection: %w", err)
+		panic(fmt.Errorf("error opening DB connection: %w", err))
 	}
-	fmt.Println("Connected to DB")
+	log.Println("Connected to DB")
 	access := &DBAccess{conn}
-	fmt.Println("DB access created")
-	fmt.Println("Setting up DB...")
+	log.Println("DB access created")
+	log.Println("Setting up DB...")
 	go access.setup()
-	return access, nil
+	return access
 }
 
 func getConnectionString(user string, passwd string, host string, port string, database string) string {

@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func (repo *Repo) ReadUserByEmail(email string) (*types.User, error) {
+func (repo *GardenService) ReadUserByEmail(email string) (*types.User, error) {
 	user, err := repo.Access.GetUserByEmail(email)
 	if err != nil {
 		return nil, fmt.Errorf("error reading user: %w", err)
@@ -18,7 +18,7 @@ func (repo *Repo) ReadUserByEmail(email string) (*types.User, error) {
 	return user, nil
 }
 
-func (repo *Repo) ReadUserByUsername(username string) (*types.User, error) {
+func (repo *GardenService) ReadUserByUsername(username string) (*types.User, error) {
 	user, err := repo.Access.GetUserByUsername(username)
 	if err != nil {
 		return nil, fmt.Errorf("error reading user: %w", err)
@@ -30,7 +30,7 @@ func (repo *Repo) ReadUserByUsername(username string) (*types.User, error) {
 	return user, nil
 }
 
-func (repo *Repo) AddUser(user *types.User) (int64, error) {
+func (repo *GardenService) AddUser(user *types.User) (int64, error) {
 	id, err := repo.Access.InsertUser(user)
 	if err != nil {
 		return -1, fmt.Errorf("error adding user: %w", err)
@@ -48,7 +48,7 @@ func (repo *Repo) AddUser(user *types.User) (int64, error) {
 	return id, nil
 }
 
-func (repo *Repo) ReadRepositoryBy(userId int64) ([]*types.Repository, error) {
+func (repo *GardenService) ReadRepositoryBy(userId int64) ([]*types.Repository, error) {
 	repos, err := repo.Access.GetRepositoriesForUser(userId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading repositories: %w", err)
@@ -63,7 +63,7 @@ func (repo *Repo) ReadRepositoryBy(userId int64) ([]*types.Repository, error) {
 	return repos, nil
 }
 
-func (repo *Repo) AddRepository(repository *types.Repository, userId int64) (int64, error) {
+func (repo *GardenService) AddRepository(repository *types.Repository, userId int64) (int64, error) {
 	repoId, err := repo.Access.InsertRepository(repository.Name, userId)
 	if err != nil {
 		return -1, fmt.Errorf("error adding repository: %w", err)
@@ -78,7 +78,7 @@ func (repo *Repo) AddRepository(repository *types.Repository, userId int64) (int
 	return repoId, nil
 }
 
-func (repo *Repo) ReadBranchesBy(repoId int64) ([]*types.Branch, error) {
+func (repo *GardenService) ReadBranchesBy(repoId int64) ([]*types.Branch, error) {
 	branches, err := repo.Access.GetBranches(repoId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading branches: %w", err)
@@ -93,7 +93,7 @@ func (repo *Repo) ReadBranchesBy(repoId int64) ([]*types.Branch, error) {
 	return branches, nil
 }
 
-func (repo *Repo) AddBranch(branch *types.Branch, repoId int64) (int64, error) {
+func (repo *GardenService) AddBranch(branch *types.Branch, repoId int64) (int64, error) {
 	_, err := repo.AddTag(branch.Head)
 	if err != nil {
 		return 0, fmt.Errorf("error adding head for branch %s: %w", branch.Name, err)
@@ -101,11 +101,11 @@ func (repo *Repo) AddBranch(branch *types.Branch, repoId int64) (int64, error) {
 	return repo.Access.InsertBranch(branch, repoId)
 }
 
-func (repo *Repo) UpdateBranchHead(branch *types.Branch) (int64, error) {
+func (repo *GardenService) UpdateBranchHead(branch *types.Branch) error {
 	return repo.Access.UpdateBranchHead(branch)
 }
 
-func (repo *Repo) ReadTagBy(tagId int64) (*types.GardenTag, error) {
+func (repo *GardenService) ReadTagBy(tagId int64) (*types.GardenTag, error) {
 	tag, err := repo.Access.GetGardenTag(tagId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading tag: %w", err)
@@ -125,7 +125,7 @@ func (repo *Repo) ReadTagBy(tagId int64) (*types.GardenTag, error) {
 	return tag, nil
 }
 
-func (repo *Repo) AddTag(tag *types.GardenTag) (int64, error) {
+func (repo *GardenService) AddTag(tag *types.GardenTag) (int64, error) {
 	id, err := repo.Access.InsertGardenTag(tag)
 	if err != nil {
 		return -1, fmt.Errorf("error adding tag: %w", err)
@@ -141,7 +141,7 @@ func (repo *Repo) AddTag(tag *types.GardenTag) (int64, error) {
 	return id, nil
 }
 
-func (repo *Repo) ReadTree(treeId int64) (*types.HashTree, error) {
+func (repo *GardenService) ReadTree(treeId int64) (*types.HashTree, error) {
 	folder, err := repo.ReadFolder(treeId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading tree: %w", err)
@@ -152,7 +152,7 @@ func (repo *Repo) ReadTree(treeId int64) (*types.HashTree, error) {
 	}, nil
 }
 
-func (repo *Repo) AddTree(tree *types.HashTree) (int64, error) {
+func (repo *GardenService) AddTree(tree *types.HashTree) (int64, error) {
 	id, err := repo.AddFolder(tree.FolderNode, nil)
 	if err != nil {
 		return -1, fmt.Errorf("error adding tree: %w", err)
@@ -171,7 +171,7 @@ func (repo *Repo) AddTree(tree *types.HashTree) (int64, error) {
 	return id, nil
 }
 
-func (repo *Repo) ReadFolder(folderId int64) (*types.FolderNode, error) {
+func (repo *GardenService) ReadFolder(folderId int64) (*types.FolderNode, error) {
 	folder, err := repo.Access.GetFolder(folderId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading folder: %w", err)
@@ -196,7 +196,7 @@ func (repo *Repo) ReadFolder(folderId int64) (*types.FolderNode, error) {
 	return folder, nil
 }
 
-func (repo *Repo) AddFolder(folder *types.FolderNode, parentID *int64) (int64, error) {
+func (repo *GardenService) AddFolder(folder *types.FolderNode, parentID *int64) (int64, error) {
 	id, err := repo.Access.InsertFolder(folder, parentID)
 	if err != nil {
 		return -1, fmt.Errorf("error adding folder: %w", err)
@@ -211,11 +211,11 @@ func (repo *Repo) AddFolder(folder *types.FolderNode, parentID *int64) (int64, e
 	return id, nil
 }
 
-func (repo *Repo) GetFilesFor(folderId int64) ([]*types.FileNode, error) {
+func (repo *GardenService) GetFilesFor(folderId int64) ([]*types.FileNode, error) {
 
 	return repo.Access.GetFilesFor(folderId)
 }
 
-func (repo *Repo) AddFile(file *types.FileNode, folderID int64) (int64, error) {
+func (repo *GardenService) AddFile(file *types.FileNode, folderID int64) (int64, error) {
 	return repo.Access.InsertFile(file, folderID)
 }
