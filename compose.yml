@@ -9,6 +9,11 @@ services:
       watch:
         - action: rebuild
           path: ./app
+        - action: sync+restart
+          path: ./web
+          target: /app/web
+    ports:
+      - 80:80
 
   
   db:
