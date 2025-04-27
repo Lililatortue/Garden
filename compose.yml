@@ -5,6 +5,8 @@ services:
     pull_policy: build
     build:
       dockerfile: ./Dockerfile
+    depends_on:
+      - db
     develop:
       watch:
         - action: rebuild
@@ -14,6 +16,8 @@ services:
           target: /app/web
     ports:
       - 80:80
+    networks:
+      - garden-network
 
   
   db:

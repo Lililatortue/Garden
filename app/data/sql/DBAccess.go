@@ -12,7 +12,7 @@ type DBAccess struct {
 }
 
 func NewDBAccess() *DBAccess {
-	connStr := getConnectionString("db", "db", "localhost", "5432", "garden")
+	connStr := getConnectionString("db", "db", "db", "5432", "garden")
 	conn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(fmt.Errorf("error opening DB connection: %w", err))
