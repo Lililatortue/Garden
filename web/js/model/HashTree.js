@@ -18,7 +18,7 @@ export class HashTree {
      * @return {HashTree} The HashTree object.
      */
     static fromJSON(json) {
-        const folder_node = FolderNode.fromJSON(json);
+        const folder_node = FolderNode.fromJSON(json.folder_node);
         return new HashTree(folder_node);
     }
 

@@ -15,6 +15,7 @@ func (api *GardenApi) setRoutes() {
 	api.setGetRepositoriesRoute()
 	api.setGetBrancheRoute()
 	api.setGetReposBranchesRoute()
+	api.setGetTagsRoute()
 }
 
 func (api *GardenApi) setTestRoutes() {
@@ -177,14 +178,14 @@ func (api *GardenApi) setGetUsersRoute() {
 }
 
 func (api *GardenApi) setGetRepositoriesRoute() {
-	api.HandleFunc("GET /api/v1/repo/{reponame}", func(w http.ResponseWriter, r *http.Request) {
+	api.HandleFunc("GET /api/v1/repo/{repoName}", func(w http.ResponseWriter, r *http.Request) {
 		var (
 			userId   = r.URL.Query().Get("user_id")
 			repoName = r.PathValue("repoName")
 			repo     *types.Repository
 		)
 		w.Header().Set("Content-Type", "application/json")
-		log.Println("Get repositories route called for repo", repoName, " from user", userId)
+		log.Println("Get repositories route called for repo", repoName, "from user", userId)
 
 		if userId == "" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -352,6 +353,7 @@ func (api *GardenApi) setGetTagsRoute() {
 			_ = json.NewEncoder(w).Encode(map[string]string{
 				"error": "Error reading tag from database",
 			})
+			return
 		}
 
 		if err := json.NewEncoder(w).Encode(tag); err != nil {
