@@ -37,7 +37,6 @@ export class User {
         } catch (error) {
             console.info(error)
             console.error("Error fetching user data:", error);
-            alert("User not found");
             return null;
         }
     }

@@ -39,7 +39,6 @@ export class FolderNode {
             return FolderNode.fromJSON(data);
         } catch (error) {
             console.error("Error fetching folder data:", error);
-            alert("Folder not found");
             return null;
         }
     }

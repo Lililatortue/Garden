@@ -48,7 +48,6 @@ export class Repository {
             return Repository.fromJSON(data);
         } catch (error) {
             console.error("Error fetching repository data:", error);
-            alert("Repository not found");
             return null;
         }
     }

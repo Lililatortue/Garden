@@ -8,11 +8,14 @@ import (
 )
 
 func (db *DBAccess) GetUserByEmail(email string) (*types.User, error) {
-	var user types.User
+	var (
+		user = types.NewUser(func(user *types.User) {
+			user.Email = email
+		})
+		query = `SELECT * FROM GardenUser WHERE email = $1`
+	)
 
-	stmt, err := db.Prepare(`
-		SELECT * FROM GardenUser WHERE email = $1
-		`)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +52,14 @@ func (db *DBAccess) GetUserByEmail(email string) (*types.User, error) {
 }
 
 func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
-	var user types.User
-	stmt, err := db.Prepare(`SELECT * FROM GardenUser WHERE username = $1`)
+	var (
+		user = types.NewUser(func(user *types.User) {
+			user.Name = username
+		})
+		query = `SELECT * FROM GardenUser WHERE username = $1`
+	)
+
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, fmt.Errorf("1error preparing statement: %w", err)
 	}
@@ -82,28 +91,42 @@ func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
 }
 
 func (db *DBAccess) InsertUser(user *types.User) (int64, error) {
-	stmt, err := db.Prepare(`
-		INSERT INTO GardenUser (username, password, email)
-		VALUES ($1, $2, $3)
-		RETURNING id
-		`)
+	var (
+		query = `INSERT INTO GardenUser (username, password, email)
+    				VALUES ($1, $2, $3)
+    				RETURNING id`
+		params = []any{user.Name, user.Password, user.Email}
+
+		id int64
+	)
+
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return -1, err
 	}
 
-	row := stmt.QueryRow(user.Name, user.Password, user.Email)
-	var id int64
+	row := stmt.QueryRow(params...)
+	if row.Err() != nil {
+		return -1, fmt.Errorf("error inserting user: %w", err)
+	}
+
 	err = row.Scan(&id)
 	if err != nil {
 		return -1, fmt.Errorf("error inserting user: %w", err)
 	}
+
 	return id, nil
 }
 
 func (db *DBAccess) GetRepository(repoId int64) (*types.Repository, error) {
-	stmt, err := db.Prepare(`
-		SELECT * FROM Repository WHERE id = $1
-		`)
+	var (
+		repo = types.NewRepository(func(repository *types.Repository) {
+			repository.ID = repoId
+		})
+		query = `SELECT * FROM Repository WHERE id = $1`
+	)
+
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +148,7 @@ func (db *DBAccess) GetRepository(repoId int64) (*types.Repository, error) {
 		}
 	}(rows)
 
-	var repo types.Repository
-	for rows.Next() {
+	if rows.Next() {
 		err = rows.Scan(&repo.ID, &repo.Name, &repo.UserID)
 		if err != nil {
 			return nil, err
@@ -137,13 +159,19 @@ func (db *DBAccess) GetRepository(repoId int64) (*types.Repository, error) {
 		return nil, rows.Err()
 	}
 
-	return &repo, nil
+	return repo, nil
 }
 
 func (db *DBAccess) GetRepositoryByName(name string, userID int64) (*types.Repository, error) {
-	query := `SELECT * FROM Repository 
-				WHERE name = $1 
-		  		AND user_id = $2`
+	var (
+		repo = types.NewRepository(func(repository *types.Repository) {
+			repository.Name = name
+			repository.UserID = userID
+		})
+		query = `SELECT * FROM Repository 
+					WHERE name = $1 
+		  			AND user_id = $2`
+	)
 
 	stmt, err := db.Prepare(query)
 	if err != nil {
@@ -158,16 +186,17 @@ func (db *DBAccess) GetRepositoryByName(name string, userID int64) (*types.Repos
 
 	row := stmt.QueryRow(name, userID)
 
-	var repo types.Repository
 	if err = row.Scan(&repo.ID, &repo.Name, &repo.UserID); err != nil {
 		return nil, fmt.Errorf("error scanning repository: %w", err)
 	}
 
-	return &repo, nil
+	return repo, nil
 }
 
 func (db *DBAccess) GetRepositoriesForUser(userId int64) ([]*types.Repository, error) {
-	var repos []*types.Repository = make([]*types.Repository, 0)
+	var (
+		repos = make([]*types.Repository, 0)
+	)
 	stmt, err := db.Prepare(`
 		SELECT * FROM Repository WHERE user_id = $1
 		`)
@@ -187,7 +216,7 @@ func (db *DBAccess) GetRepositoriesForUser(userId int64) ([]*types.Repository, e
 	}
 
 	for rows.Next() {
-		var repo types.Repository
+		var repo = types.NewRepository()
 		err := rows.Scan(
 			&repo.ID,
 			&repo.Name,
@@ -196,7 +225,7 @@ func (db *DBAccess) GetRepositoriesForUser(userId int64) ([]*types.Repository, e
 		if err != nil {
 			return nil, fmt.Errorf("error scanning repository: %w", err)
 		}
-		repos = append(repos, &repo)
+		repos = append(repos, repo)
 	}
 
 	return repos, nil
@@ -235,10 +264,7 @@ func (db *DBAccess) GetBranch(name string, repoId int64) (*types.Branch, error) 
 			SELECT id, tag_id FROM Branch 
 			  WHERE name = $1 
 			  AND repository_id = $2`
-		branch types.Branch = types.Branch{
-			Name: name,
-			Head: &types.GardenTag{},
-		}
+		branch = types.NewBranch()
 	)
 
 	stmt, err := db.Prepare(query)
@@ -256,14 +282,17 @@ func (db *DBAccess) GetBranch(name string, repoId int64) (*types.Branch, error) 
 		return nil, fmt.Errorf("error scanning branch: %w", err)
 	}
 
-	return &branch, nil
+	return branch, nil
 }
 
 func (db *DBAccess) GetBranches(repoId int64) ([]*types.Branch, error) {
-	var branches []*types.Branch = make([]*types.Branch, 0)
-	stmt, err := db.Prepare(`
-		SELECT * FROM Branch WHERE repository_id = $1
-		`)
+	var (
+		branches = make([]*types.Branch, 0)
+		query    = `
+			SELECT id, name, tag_id FROM Branch 
+			  WHERE repository_id = $1`
+	)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, fmt.Errorf("error preparing statement: %w", err)
 	}
@@ -280,7 +309,9 @@ func (db *DBAccess) GetBranches(repoId int64) ([]*types.Branch, error) {
 	}
 
 	for rows.Next() {
-		var branch types.Branch
+		var (
+			branch = types.NewBranch()
+		)
 
 		err := rows.Scan(
 			&branch.ID,
@@ -290,7 +321,7 @@ func (db *DBAccess) GetBranches(repoId int64) ([]*types.Branch, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error scanning branch: %w", err)
 		}
-		branches = append(branches, &branch)
+		branches = append(branches, branch)
 	}
 
 	return branches, nil
@@ -364,12 +395,15 @@ func (db *DBAccess) UpdateBranchHead(branch *types.Branch) error {
 
 func (db *DBAccess) GetGardenTag(tagId int64) (*types.GardenTag, error) {
 	var (
-		tag types.GardenTag
+		tag = types.NewGardenTag(func(tag *types.GardenTag) {
+			tag.ID = tagId
+		})
+		query = `SELECT * FROM GardenTag WHERE id = $1`
+
+		parentID *int64 = nil
 	)
 
-	stmt, err := db.Prepare(`
-		SELECT * FROM GardenTag WHERE id = $1
-		`)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +428,7 @@ func (db *DBAccess) GetGardenTag(tagId int64) (*types.GardenTag, error) {
 	if rows.Next() {
 		err = rows.Scan(
 			&tag.ID,
-			&tag.Parent.ID,
+			&parentID,
 			&tag.Signature,
 			&tag.Message,
 			&tag.Timestamp,
@@ -403,13 +437,17 @@ func (db *DBAccess) GetGardenTag(tagId int64) (*types.GardenTag, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if parentID != nil {
+			tag.Parent = &types.GardenTag{ID: *parentID}
+		}
 	}
 
 	if rows.Err() != nil {
 		return nil, rows.Err()
 	}
 
-	return &tag, nil
+	return tag, nil
 }
 
 func (db *DBAccess) InsertGardenTag(tag *types.GardenTag) (int64, error) {
@@ -455,9 +493,14 @@ func (db *DBAccess) InsertGardenTag(tag *types.GardenTag) (int64, error) {
 }
 
 func (db *DBAccess) GetFolder(folderId int64) (*types.FolderNode, error) {
-	stmt, err := db.Prepare(`
-		SELECT * FROM FolderNode WHERE id = $1
-		`)
+	var (
+		folder = types.NewFolderNode(func(node *types.FolderNode) {
+			node.ID = folderId
+		})
+		query = `SELECT id, signature, name FROM FolderNode WHERE id = $1`
+	)
+
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -479,7 +522,6 @@ func (db *DBAccess) GetFolder(folderId int64) (*types.FolderNode, error) {
 		}
 	}(rows)
 
-	var folder types.FolderNode
 	for rows.Next() {
 		err = rows.Scan(
 			&folder.ID,
@@ -495,15 +537,16 @@ func (db *DBAccess) GetFolder(folderId int64) (*types.FolderNode, error) {
 		return nil, rows.Err()
 	}
 
-	return &folder, nil
+	return folder, nil
 }
 
-func (db *DBAccess) GetTree(treeId int64) ([]*types.FolderNode, error) {
-	var folders []*types.FolderNode = make([]*types.FolderNode, 0)
+func (db *DBAccess) GetSubFolders(treeId int64) ([]*types.FolderNode, error) {
+	var (
+		folders = make([]*types.FolderNode, 0)
+		query   = `SELECT id, signature, name FROM FolderNode WHERE parent_id = $1`
+	)
 
-	stmt, err := db.Prepare(`
-		SELECT * FROM FolderNode WHERE parent_id = $1
-		`)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -526,7 +569,7 @@ func (db *DBAccess) GetTree(treeId int64) ([]*types.FolderNode, error) {
 	}(rows)
 
 	for rows.Next() {
-		var folder types.FolderNode
+		folder := types.NewFolderNode()
 		err := rows.Scan(
 			&folder.ID,
 			&folder.Signature,
@@ -535,7 +578,8 @@ func (db *DBAccess) GetTree(treeId int64) ([]*types.FolderNode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error scanning folder: %w", err)
 		}
-		folders = append(folders, &folder)
+
+		folders = append(folders, folder)
 	}
 
 	return folders, nil
@@ -577,9 +621,14 @@ func (db *DBAccess) InsertFolder(folder *types.FolderNode, parentID *int64) (int
 }
 
 func (db *DBAccess) GetFilesFor(folderId int64) ([]*types.FileNode, error) {
-	var files []*types.FileNode = make([]*types.FileNode, 0)
+	var (
+		files = make([]*types.FileNode, 0)
+		query = `SELECT id, signature, name, content 
+				 FROM FileNode 
+				 WHERE folder_id = $1`
+	)
 
-	stmt, err := db.Prepare(`SELECT * FROM FileNode WHERE folder_id = $1`)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -596,13 +645,20 @@ func (db *DBAccess) GetFilesFor(folderId int64) ([]*types.FileNode, error) {
 	}
 
 	for rows.Next() {
-		var file types.FileNode
-		err := rows.Scan(&file.ID, &file.Signature, &file.Filename, &file.Content)
+		file := types.NewFileNode(func(file *types.FileNode) {
+			file.ID = folderId
+		})
+		err := rows.Scan(
+			&file.ID,
+			&file.Signature,
+			&file.Filename,
+			&file.Content,
+		)
 
 		if err != nil {
 			return nil, fmt.Errorf("error scanning file: %w", err)
 		}
-		files = append(files, &file)
+		files = append(files, file)
 	}
 
 	return files, nil

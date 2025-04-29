@@ -41,7 +41,6 @@ export class Branch {
             return Branch.fromJSON(data);
         } catch (error) {
             console.error("Error fetching branch data:", error);
-            alert("Branch not found");
             return null;
         }
     }

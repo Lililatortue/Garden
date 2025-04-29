@@ -56,7 +56,6 @@ export class Tag {
             return Tag.fromJSON(data);
         } catch (error) {
             console.error("Error fetching tag data:", error);
-            alert("Tag not found");
             return null;
         }
     }

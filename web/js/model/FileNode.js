@@ -63,7 +63,6 @@ export class FileNode {
             return data.map(file => FileNode.fromJSON(file));
         } catch (error) {
             console.error("Error fetching files:", error);
-            alert("Files not found");
             return null;
         }
     }
