@@ -28,6 +28,10 @@
 		"80:80"
 	],
 
+	"mounts": [
+		// "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached",
+	],
+
 	// Use 'postCreateCommand' to run commands after the container is created.
 	//"postCreateCommand": "docker compose watch",
 
