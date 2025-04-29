@@ -20,6 +20,6 @@ func NewRepoWith(access *sql.DBAccess) *GardenService {
 	}
 }
 
-func (repo *GardenService) Close() error {
-	return repo.Access.Close()
+func (gs *GardenService) Close() error {
+	return gs.Access.Close()
 }

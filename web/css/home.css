@@ -1,0 +1,185 @@
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    margin: 0;
+    color: #24292e;
+    background-color: #f6f8fa;
+}
+
+.container {
+    max-width: 980px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.header {
+    display: flex;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid #e1e4e8;
+    margin-bottom: 20px;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #24292e;
+    text-decoration: none;
+    margin-right: 20px;
+}
+
+.span {
+    flex-grow: 1;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-links li {
+    margin-left: 15px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #586069;
+    font-size: 14px;
+}
+
+.nav-links a:hover {
+    color: #0366d6;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-left: 15px;
+}
+
+/* Main Content */
+.main-content {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 30px;
+}
+
+/* Sidebar */
+.sidebar {
+    padding-right: 20px;
+    border-right: 1px solid #e1e4e8;
+}
+
+.sidebar-section {
+    margin-bottom: 20px;
+}
+
+.sidebar-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #24292e;
+    margin-bottom: 10px;
+}
+
+.sidebar-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-list li {
+    margin-bottom: 8px;
+}
+
+.sidebar-list a {
+    text-decoration: none;
+    color: #586069;
+    font-size: 14px;
+    display: block;
+}
+
+.sidebar-list a:hover {
+    color: #0366d6;
+}
+
+.contributions-graph {
+    width: 100%;
+    height: 80px;
+    background-color: #eee; /* Placeholder */
+    border-radius: 3px;
+}
+
+/* Repository List */
+.repository-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.repository-item {
+    padding: 16px 0;
+    border-bottom: 1px solid #e1e4e8;
+}
+
+.repository-item:last-child {
+    border-bottom: none;
+}
+
+.repo-name {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.repo-name a {
+    text-decoration: none;
+    color: #0366d6;
+}
+
+.repo-description {
+    color: #586069;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.repo-details {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    color: #586069;
+    font-size: 12px;
+}
+
+.repo-details span {
+    margin-right: 10px;
+}
+
+.octicon {
+    display: inline-block;
+    vertical-align: text-top;
+    fill: currentColor;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 20px 0;
+    margin-top: 30px;
+    color: #586069;
+    font-size: 12px;
+    border-top: 1px solid #e1e4e8;
+}

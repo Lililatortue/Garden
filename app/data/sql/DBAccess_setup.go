@@ -1,8 +1,6 @@
 package sql
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"garden/types"
 	"log"
@@ -25,7 +23,7 @@ func (db *DBAccess) setup() {
 
 	// create default user and repository
 	userId := db.setupDefaultUser()
-	_ = db.setupDefaultRepository(userId)
+	db.setupDefaultRepository(userId)
 
 	log.Println("DB setup complete")
 }
@@ -37,7 +35,7 @@ func (db *DBAccess) createGardenTagTable() {
 			parent_id INTEGER,
 			signature VARCHAR(40) NOT NULL,
 			message TEXT,
-			timestamp TIMESTAMP NOT NULL,
+			timestamp TIMESTAMP DEFAULT NOW() NOT NULL,
 			tree_id INTEGER NOT NULL,
 			FOREIGN KEY (parent_id) REFERENCES GardenTag (id)
 			    ON DELETE CASCADE 
@@ -84,7 +82,9 @@ func (db *DBAccess) createBranchTable() {
 				ON UPDATE CASCADE,
 			FOREIGN KEY (repository_id) REFERENCES Repository (id)
 				ON DELETE CASCADE 
-				ON UPDATE CASCADE
+				ON UPDATE CASCADE,
+			CONSTRAINT branch_name_repository_id_unique
+				UNIQUE (name, repository_id)
 			)`
 	_, err := db.Exec(query)
 	if err != nil {
@@ -115,7 +115,7 @@ func (db *DBAccess) createFileNodeTable() {
 }
 
 func (db *DBAccess) createUserTable() {
-	query := `CREATE TABLE IF NOT EXISTS "GardenUser" (
+	query := `CREATE TABLE IF NOT EXISTS GardenUser (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,
 			username VARCHAR(40) NOT NULL UNIQUE,
@@ -136,9 +136,11 @@ func (db *DBAccess) createRepositoryTable() {
 				GENERATED ALWAYS AS IDENTITY,
 			name VARCHAR(40) NOT NULL,
 			user_id INTEGER NOT NULL,
-			FOREIGN KEY (user_id) REFERENCES "GardenUser" (id)
+			FOREIGN KEY (user_id) REFERENCES GardenUser (id)
 				ON DELETE CASCADE 
-				ON UPDATE CASCADE
+				ON UPDATE CASCADE,
+			CONSTRAINT repository_name_user_id_unique
+				UNIQUE (name, user_id)
 			)`
 	_, err := db.Exec(query)
 	if err != nil {
@@ -149,32 +151,59 @@ func (db *DBAccess) createRepositoryTable() {
 }
 
 func (db *DBAccess) setupDefaultUser() int64 {
-	user := types.User{
-		Name:     "test",
-		Password: "test",
-		Email:    "test@email.com",
-	}
-	u, err := db.GetUserByUsername(user.Name)
-	if err != nil {
-		if !errors.As(err, &sql.ErrNoRows) {
-			panic(fmt.Errorf("error checking for default user: %w", err))
+	var (
+		query = `
+			INSERT INTO GardenUser (username, password, email) 
+			VALUES ($1, $2, $3)
+			ON CONFLICT (username) DO NOTHING
+			RETURNING id`
+		user = types.User{
+			Name:     "test",
+			Password: "test",
+			Email:    "test@email.com",
 		}
-	} else {
-		return u.ID
-	}
+	)
 
-	id, err := db.InsertUser(&user)
+	stmt, err := db.Prepare(query)
 	if err != nil {
-		panic(fmt.Errorf("error creating default user: %w", err))
-
+		panic(fmt.Errorf("error preparing statement: %w", err))
 	}
+
+	row := stmt.QueryRow(user.Name, user.Password, user.Email)
+
+	var id int64
+	if err = row.Scan(&id); err != nil {
+		panic(fmt.Errorf("error inserting default user: %w", err))
+	}
+
 	return id
+
 }
 
 func (db *DBAccess) setupDefaultRepository(userId int64) int64 {
-	id, err := db.InsertRepository("test", userId)
+	var (
+		query = `
+			INSERT INTO Repository (name, user_id) 
+			VALUES ($1, $2)
+			ON CONFLICT (name, user_id) DO NOTHING
+			RETURNING id`
+		repo = types.Repository{
+			Name:   "test",
+			UserID: userId,
+		}
+	)
+
+	stmt, err := db.Prepare(query)
 	if err != nil {
-		panic(fmt.Errorf("error creating default repository: %w", err))
+		panic(fmt.Errorf("error preparing statement: %w", err))
 	}
+
+	row := stmt.QueryRow(repo.Name, repo.UserID)
+
+	var id int64
+	if err = row.Scan(&id); err != nil {
+		panic(fmt.Errorf("error inserting default repository: %w", err))
+	}
+
 	return id
 }

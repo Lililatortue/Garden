@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BloomHub</title>
+    <link rel="stylesheet" href="/css/home.css">
+    <script type="module" src="/js/home.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="/" class="logo">BloomHub</a>
+            <a id="user-name" class="username-link" href="/home.html"></a>
+            <div class="span"></div>
+            <ul class="nav-links">
+                <li><a class="username-link" href="/home.html">Home</a></li>
+            </ul>
+            <a href="/home.html" class="avatar username-link" style="background-color: #ccc;"></a> </header>
+            
+            <div class="main-content">
+                <aside class="sidebar">
+                    <div class="sidebar-section">
+                        <h2 class="sidebar-title">Your Repositories</h2>
+                        <ul id="my-repositories" class="sidebar-list">
+                            <li>No repositories found</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="sidebar-section">
+                        <h2 class="sidebar-title">Followers (mock-up)</h2>
+                        <ul class="sidebar-list">
+                            <li><a href="#">user1</a></li>
+                            <li><a href="#">developer2</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="sidebar-section">
+                        <h2 class="sidebar-title">Contributions (placeholder)</h2>
+                        <div class="contributions-graph">
+                        </div>
+                    </div>
+                </aside>
+                
+                <main>
+                    <h2 style="margin-bottom: 15px;">Popular Repositories (mock-up)</h2>
+                    <ul class="repository-list">
+                        <li class="repository-item">
+                            <h3 class="repo-name"><a href="#">awesome-project</a></h3>
+                            <p class="repo-description">A fantastic open-source project.</p>
+                            <div class="repo-details">
+                                <span>
+                                    <svg class="octicon octicon-star" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M14 6l-4.9-.64L7 1 4.9 5.36 0 6l3.6 3.26L2.67 14 7 11.67 11.33 14l-.93-4.74L14 6z"></path>
+                                    </svg> 1.2k
+                                </span>
+                                <span>
+                                    <svg class="octicon octicon-repo-forked" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M7 0C3.13 0 0 3.13 0 7c0 3.87 3.13 7 7 7s7-3.13 7-7S10.87 0 7 0zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"></path>
+                                    </svg> Forked
+                                </span>
+                                <span>
+                                    <svg class="octicon octicon-eye" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M7 3c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"></path>
+                                    </svg> Watch
+                                </span>
+                            </div>
+                        </li>
+                        <li class="repository-item">
+                            <h3 class="repo-name"><a href="#">another-repo</a></h3>
+                            <p class="repo-description">Another great repository.</p>
+                            <div class="repo-details">
+                                <span>
+                                    <svg class="octicon octicon-star" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M14 6l-4.9-.64L7 1 4.9 5.36 0 6l3.6 3.26L2.67 14 7 11.67 11.33 14l-.93-4.74L14 6z"></path>
+                                    </svg> 800
+                                </span>
+                                <span>
+                                    <svg class="octicon octicon-repo-forked" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M7 0C3.13 0 0 3.13 0 7c0 3.87 3.13 7 7 7s7-3.13 7-7S10.87 0 7 0zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"></path>
+                                    </svg> Forked
+                                </span>
+                                <span>
+                                    <svg class="octicon octicon-eye" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M7 3c-4.41 0-8 3.59-8 8s3.59 8 8 8s8-3.59,8-8s-3.59 -8 -8 -8zm0,14c -3.31,0 -6 -2.69 -6 -6s2.69 -6,6 -6s6
+                                        2.69 6 6s-2.69 6 -6 6z"></path>
+                                    </svg> Watch
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </main>
+            </div>
+            <footer class="footer">
+                <p>&copy; 2025 BloomHub. All rights reserved.</p>
+                <p>Made with <span style="color: #e25555;">♥</span> by the BloomHub team.</p>
+            </footer>
+        </div>
+    </body>
+    </html>

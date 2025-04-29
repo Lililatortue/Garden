@@ -11,7 +11,7 @@ func (db *DBAccess) GetUserByEmail(email string) (*types.User, error) {
 	var user types.User
 
 	stmt, err := db.Prepare(`
-		SELECT * FROM "GardenUser" WHERE email = $1
+		SELECT * FROM GardenUser WHERE email = $1
 		`)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (db *DBAccess) GetUserByEmail(email string) (*types.User, error) {
 
 func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
 	var user types.User
-	stmt, err := db.Prepare(`SELECT * FROM "GardenUser" WHERE username = $1`)
+	stmt, err := db.Prepare(`SELECT * FROM GardenUser WHERE username = $1`)
 	if err != nil {
 		return nil, fmt.Errorf("1error preparing statement: %w", err)
 	}
@@ -83,7 +83,7 @@ func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
 
 func (db *DBAccess) InsertUser(user *types.User) (int64, error) {
 	stmt, err := db.Prepare(`
-		INSERT INTO "GardenUser" (username, password, email)
+		INSERT INTO GardenUser (username, password, email)
 		VALUES ($1, $2, $3)
 		RETURNING id
 		`)
@@ -98,42 +98,6 @@ func (db *DBAccess) InsertUser(user *types.User) (int64, error) {
 		return -1, fmt.Errorf("error inserting user: %w", err)
 	}
 	return id, nil
-}
-
-func (db *DBAccess) GetRepositoriesForUser(userId int64) ([]*types.Repository, error) {
-	var repos []*types.Repository = make([]*types.Repository, 0)
-	stmt, err := db.Prepare(`
-		SELECT * FROM Repository WHERE user_id = $1
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("error preparing statement: %w", err)
-	}
-	defer func(stmt *sql.Stmt) {
-		err := stmt.Close()
-		if err != nil {
-			log.Println(err.Error())
-		}
-	}(stmt)
-
-	rows, err := stmt.Query(userId)
-	if err != nil {
-		return nil, fmt.Errorf("error executing statement: %w", err)
-	}
-
-	for rows.Next() {
-		var repo types.Repository
-		err := rows.Scan(
-			&repo.ID,
-			&repo.Name,
-			&repo.UserID,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning repository: %w", err)
-		}
-		repos = append(repos, &repo)
-	}
-
-	return repos, nil
 }
 
 func (db *DBAccess) GetRepository(repoId int64) (*types.Repository, error) {
@@ -176,6 +140,68 @@ func (db *DBAccess) GetRepository(repoId int64) (*types.Repository, error) {
 	return &repo, nil
 }
 
+func (db *DBAccess) GetRepositoryByName(name string, userID int64) (*types.Repository, error) {
+	query := `SELECT * FROM Repository 
+				WHERE name = $1 
+		  		AND user_id = $2`
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("error preparing statement: %w", err)
+	}
+	defer func() {
+		err := stmt.Close()
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}()
+
+	row := stmt.QueryRow(name, userID)
+
+	var repo types.Repository
+	if err = row.Scan(&repo.ID, &repo.Name, &repo.UserID); err != nil {
+		return nil, fmt.Errorf("error scanning repository: %w", err)
+	}
+
+	return &repo, nil
+}
+
+func (db *DBAccess) GetRepositoriesForUser(userId int64) ([]*types.Repository, error) {
+	var repos []*types.Repository = make([]*types.Repository, 0)
+	stmt, err := db.Prepare(`
+		SELECT * FROM Repository WHERE user_id = $1
+		`)
+	if err != nil {
+		return nil, fmt.Errorf("error preparing statement: %w", err)
+	}
+	defer func(stmt *sql.Stmt) {
+		err := stmt.Close()
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}(stmt)
+
+	rows, err := stmt.Query(userId)
+	if err != nil {
+		return nil, fmt.Errorf("error executing statement: %w", err)
+	}
+
+	for rows.Next() {
+		var repo types.Repository
+		err := rows.Scan(
+			&repo.ID,
+			&repo.Name,
+			&repo.UserID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning repository: %w", err)
+		}
+		repos = append(repos, &repo)
+	}
+
+	return repos, nil
+}
+
 func (db *DBAccess) InsertRepository(repoName string, userId int64) (int64, error) {
 	stmt, err := db.Prepare(`
 		INSERT INTO Repository (name, user_id)
@@ -201,6 +227,36 @@ func (db *DBAccess) InsertRepository(repoName string, userId int64) (int64, erro
 	}
 
 	return id, nil
+}
+
+func (db *DBAccess) GetBranch(name string, repoId int64) (*types.Branch, error) {
+	var (
+		query = `
+			SELECT id, tag_id FROM Branch 
+			  WHERE name = $1 
+			  AND repository_id = $2`
+		branch types.Branch = types.Branch{
+			Name: name,
+			Head: &types.GardenTag{},
+		}
+	)
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("error preparing statement: %w", err)
+	}
+
+	row := stmt.QueryRow(name, repoId)
+
+	err = row.Scan(
+		&branch.ID,
+		&branch.Head.ID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error scanning branch: %w", err)
+	}
+
+	return &branch, nil
 }
 
 func (db *DBAccess) GetBranches(repoId int64) ([]*types.Branch, error) {
@@ -267,6 +323,29 @@ func (db *DBAccess) InsertBranch(branch *types.Branch, repoID int64) (int64, err
 	}
 
 	return id, nil
+}
+
+func (db *DBAccess) UpsertBranch(branch *types.Branch, repoID int64) (int64, error) {
+	stmt, err := db.Prepare(`
+		INSERT INTO Branch (name, tag_id, repository_id)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (name, repository_id) DO UPDATE SET tag_id = $2
+		RETURNING id
+		`)
+	if err != nil {
+		return -1, fmt.Errorf("error upserting branch: %w", err)
+	}
+
+	row := stmt.QueryRow(branch.Name, branch.Head.ID, repoID)
+
+	var id int64
+	err = row.Scan(&id)
+	if err != nil {
+		return -1, fmt.Errorf("error scanning branch id: %w", err)
+	}
+
+	return id, nil
+
 }
 
 func (db *DBAccess) UpdateBranchHead(branch *types.Branch) error {
