@@ -54,7 +54,7 @@ if (tag === null || tag === undefined) {
     // window.location.href = "/home.html"
 }
 
-const tree = await HashTree.fetchHashTreeData(tag.tree.folder_node.id)
+HashTree.fetchHashTreeData(tag.tree.folder_node.id)
 .then(tree => {
     console.log("HashTree data fetched")
     console.log(tree)
@@ -109,32 +109,28 @@ const tree = await HashTree.fetchHashTreeData(tag.tree.folder_node.id)
         console.log("README.md not found")
         readmeContainer.innerHTML = "<p>No README.md found</p>"
     }
+
+    return tree
 })
 .catch(error => {
     console.error("Error fetching HashTree data:", error);
     return null;
 })
-if (tree === null || tree === undefined) {
-    console.error("HashTree not found")
-    console.info(tree)
-    // window.location.href = "/home.html"
-}
 
 
 
-const branches = await Branch.fetchBranches(repo.id)
-if (branches === null || branches === undefined) {
-    console.error("Branches not found")
-    console.info(branches)
-    // window.location.href = "/home.html"
-}
-if (branches.length === 0) {
-    console.error("No branches found")
-    console.info(branches)
-    // window.location.href = "/home.html"
-}
-repoBranches.innerHTML = "" // clear the branches dropdown
-branches.map(branch => branch.name)
+Branch.fetchBranches(repo.id)
+.then(branches => {
+    if (branches === null || branches === undefined) {
+        throw new Error("Branches not found")
+        // window.location.href = "/home.html"
+    }
+    if (branches.length === 0) {
+        throw new Error("No branches found")
+        // window.location.href = "/home.html"
+    }
+    repoBranches.innerHTML = "" // clear the branches dropdown
+    branches.map(branch => branch.name)
     .forEach(name => {
         console.log("adding branch: " + name)
         let opt = document.createElement("option")
@@ -145,6 +141,11 @@ branches.map(branch => branch.name)
         }
         repoBranches.appendChild(opt)
     })
+})
+.catch(error => {
+    console.error("Error fetching branches:", error);
+    return null;
+})
 
 
 

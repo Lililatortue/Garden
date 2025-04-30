@@ -239,30 +239,31 @@ func (gs *GardenService) ReadTree(treeId int64) (tree *types.HashTree, err error
 			err = fmt.Errorf("error reading tree with id %d: %w", treeId, panicErr.(error))
 		}
 	}()
-	fmt.Printf("Reading tree with id %d\n", treeId)
 	root, err := gs.Access.GetFolder(treeId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading tree: %w", err)
 	}
-	fmt.Printf("Read root folder with id %d\n", root.ID)
 	tree.FolderNode = root
-	fmt.Printf("Set root folder with id %d to the tree\n", root.ID)
 
-	fmt.Printf("Reading subfolders for root folder with id %d\n", root.ID)
-	tree.Traverse(func(node *types.FolderNode) {
-		fmt.Printf("Traversing node with id: %d\n", node.ID)
-		for i, folder := range node.Contents.SubFolders {
-			readFolder, err := gs.ReadFolder(folder.ID)
-			if err != nil {
-				panic(fmt.Errorf("error reading subfolder with id %d: %w", folder.ID, err))
-			}
-			node.Contents.SubFolders[i] = readFolder
-		}
-		node.Contents.SubFiles, err = gs.GetFilesFor(node.ID)
+	tree.FolderNode.Contents.SubFiles, err = gs.GetFilesFor(treeId)
+	if err != nil {
+		return nil, fmt.Errorf("error reading subfiles for tree with id %d: %w", treeId, err)
+	}
+
+	subFolders, err := gs.Access.GetSubFolders(treeId)
+	if err != nil {
+		return nil, fmt.Errorf("error reading subfolders for tree with id %d: %w", treeId, err)
+	}
+
+	for i, folder := range subFolders {
+		subTree, err := gs.ReadTree(folder.ID)
 		if err != nil {
-			panic(fmt.Errorf("error reading subfiles for folder with id %d: %w", node.ID, err))
+			return nil, fmt.Errorf("error reading subfolder with id %d: %w", folder.ID, err)
 		}
-	})
+		subFolders[i] = subTree.FolderNode
+	}
+	tree.FolderNode.Contents.SubFolders = subFolders
+
 	return &types.HashTree{FolderNode: root}, nil
 }
 
