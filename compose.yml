@@ -1,4 +1,24 @@
 services:
+
+  bloomhub:
+    container_name: bloomhub
+    pull_policy: build
+    build:
+      dockerfile: ./Dockerfile
+    depends_on:
+      - db
+    develop:
+      watch:
+        - action: rebuild
+          path: ./app
+        - action: sync+restart
+          path: ./web
+          target: /app/web
+    ports:
+      - 80:80
+    networks:
+      - garden-network
+
   
   db:
     container_name: garden-db

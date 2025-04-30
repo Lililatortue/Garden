@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock GitHub Repository</title>
+    <link rel="stylesheet" href="/css/repo.css">
+    <script type="module" src="/js/dir.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/home.html" class="avatar username-link" style="background-color: #ccc;"></a> 
+            <a id="user-name" class="username-link" href="/home.html">username</a>
+            &nbsp;/&nbsp; 
+            <a id="repo-name" class="repo-link" href="/repo.html">repository</a>
+        </header>
+
+        <nav>
+            <a href="/repo.html" class="active ">Code</a>
+        </nav>
+
+        <div id="repo-content" class="file-list">
+            <div class="file-list-header">
+                <select name="branch" id="repo-branches">
+                    <option value="main" selected>main</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
