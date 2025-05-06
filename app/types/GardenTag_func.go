@@ -2,6 +2,16 @@ package types
 
 import "iter"
 
+func NewGardenTag(opts ...func(*GardenTag)) *GardenTag {
+	tag := DefaultGardenTag
+
+	for _, opt := range opts {
+		opt(&tag)
+	}
+
+	return &tag
+}
+
 func (gt *GardenTag) IterateToParent() iter.Seq[*GardenTag] {
 	return func(yield func(*GardenTag) bool) {
 		curr := gt
@@ -21,4 +31,14 @@ func (gt *GardenTag) IterateWhile(stop func(node *GardenTag) bool, action func(n
 		}
 		action(tag)
 	}
+}
+
+func (gt *GardenTag) GetParents() List[GardenTag] {
+	var parents List[GardenTag] = make([]*GardenTag, 0, 10)
+
+	for tag := range gt.IterateToParent() {
+		parents.Push(tag)
+	}
+
+	return parents
 }

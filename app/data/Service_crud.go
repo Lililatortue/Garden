@@ -108,14 +108,14 @@ func (gs *GardenService) InitRepository(repoName string, userId int64) (*types.R
 			Timestamp: time.Now(),
 		}
 		tree = &types.HashTree{
-			FolderNode: &types.FolderNode{
-				Filename:  "test",
+			FolderNode: types.FolderNode{
+				Filename:  repoName,
 				Path:      "/",
 				Signature: "42099b4af021e53fd8fd4e056c2568d7c2e3ffa8",
 			},
 		}
 	)
-	tag.Tree.FolderNode.Contents.SubFiles = []*types.FileNode{
+	tag.Tree.FolderNode.SubFiles = []*types.FileNode{
 		{
 			Filename:  "README.md",
 			Path:      "/README.md",
@@ -151,7 +151,7 @@ func (gs *GardenService) InitRepository(repoName string, userId int64) (*types.R
 
 }
 
-func (gs GardenService) ReadBranch(branchName string, repoId int64) (*types.Branch, error) {
+func (gs *GardenService) ReadBranch(branchName string, repoId int64) (*types.Branch, error) {
 	branch, err := gs.Access.GetBranch(branchName, repoId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading branch: %w", err)
@@ -167,20 +167,22 @@ func (gs *GardenService) ReadBranchesOf(repoId int64) ([]*types.Branch, error) {
 		return nil, fmt.Errorf("error reading branches: %w", err)
 	}
 
-	for i, branch := range branches {
-		branches[i].Head, err = gs.ReadTagBy(branch.Head.ID)
+	for _, branch := range branches {
+		tag, err := gs.ReadTagBy(branch.Head.ID)
 		if err != nil {
 			return nil, fmt.Errorf("error reading head for branch %s: %w", branch.Name, err)
 		}
+		branch.Head = *tag
 	}
 	return branches, nil
 }
 
 func (gs *GardenService) AddBranch(branch *types.Branch, repoId int64) (int64, error) {
-	_, err := gs.AddTag(branch.Head)
+	tagID, err := gs.AddTag(&branch.Head)
 	if err != nil {
 		return 0, fmt.Errorf("error adding head for branch %s: %w", branch.Name, err)
 	}
+	branch.Head.ID = tagID
 	return gs.Access.InsertBranch(branch, repoId)
 }
 
@@ -188,7 +190,7 @@ func (gs *GardenService) UpdateBranchHead(branch *types.Branch) error {
 	return gs.Access.UpdateBranchHead(branch)
 }
 
-func (gs GardenService) ReadTagRecursiveBy(tagId int64) (*types.GardenTag, error) {
+func (gs *GardenService) ReadTagRecursiveBy(tagId int64) (*types.GardenTag, error) {
 	tag := types.NewGardenTag(func(tag *types.GardenTag) {
 		tag.ID = tagId
 	})
@@ -217,19 +219,32 @@ func (gs *GardenService) ReadTagBy(tagId int64) (*types.GardenTag, error) {
 }
 
 func (gs *GardenService) AddTag(tag *types.GardenTag) (int64, error) {
+	log.Printf("Adding tag %#v\n", tag)
+	treeID, err := gs.AddTree(&tag.Tree)
+	if err != nil {
+		return -1, fmt.Errorf("error adding tree for tag %s: %w", tag.Signature, err)
+	}
+	tag.Tree.FolderNode = *types.NewFolderNode(func(node *types.FolderNode) {
+		node.ID = treeID
+	})
+
 	id, err := gs.Access.InsertGardenTag(tag)
 	if err != nil {
 		return -1, fmt.Errorf("error adding tag: %w", err)
 	}
 
-	if tag.Parent != nil {
-		tag.Parent.ID, err = gs.AddTag(tag.Parent)
-		if err != nil {
-			return -1, fmt.Errorf("error adding parent for tag %s: %w", tag.Signature, err)
-		}
-	}
-
 	return id, nil
+}
+
+func (gs GardenService) AddTagRecursive(tag *types.GardenTag) (int64, error) {
+	for currTag := range tag.IterateToParent() {
+		addedTagId, err := gs.AddTag(currTag)
+		if err != nil {
+			return 0, fmt.Errorf("error adding tag: %w", err)
+		}
+		currTag.ID = addedTagId
+	}
+	return tag.ID, nil
 }
 
 func (gs *GardenService) ReadTree(treeId int64) (tree *types.HashTree, err error) {
@@ -243,9 +258,9 @@ func (gs *GardenService) ReadTree(treeId int64) (tree *types.HashTree, err error
 	if err != nil {
 		return nil, fmt.Errorf("error reading tree: %w", err)
 	}
-	tree.FolderNode = root
+	tree.FolderNode = *root
 
-	tree.FolderNode.Contents.SubFiles, err = gs.GetFilesFor(treeId)
+	tree.FolderNode.SubFiles, err = gs.GetFilesFor(treeId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading subfiles for tree with id %d: %w", treeId, err)
 	}
@@ -260,22 +275,22 @@ func (gs *GardenService) ReadTree(treeId int64) (tree *types.HashTree, err error
 		if err != nil {
 			return nil, fmt.Errorf("error reading subfolder with id %d: %w", folder.ID, err)
 		}
-		subFolders[i] = subTree.FolderNode
+		subFolders[i] = &subTree.FolderNode
 	}
-	tree.FolderNode.Contents.SubFolders = subFolders
+	tree.FolderNode.SubFolders = subFolders
 
-	return &types.HashTree{FolderNode: root}, nil
+	return &types.HashTree{FolderNode: *root}, nil
 }
 
 func (gs *GardenService) AddTree(tree *types.HashTree) (int64, error) {
-	id, err := gs.AddFolder(tree.FolderNode, nil)
+	id, err := gs.AddFolder(&tree.FolderNode, nil)
 	if err != nil {
 		return -1, fmt.Errorf("error adding tree: %w", err)
 	}
 
 	tree.Traverse(func(node *types.FolderNode) {
-		for i, folder := range node.Contents.SubFolders {
-			node.Contents.SubFolders[i].ID, err = gs.AddFolder(folder, &node.ID)
+		for i, folder := range node.SubFolders {
+			node.SubFolders[i].ID, err = gs.AddFolder(folder, &node.ID)
 			if err != nil {
 				log.Println(err.Error())
 				return
@@ -291,12 +306,12 @@ func (gs *GardenService) ReadFolder(folderId int64) (*types.FolderNode, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error reading folder: %w", err)
 	}
-	folder.Contents.SubFolders, err = gs.Access.GetSubFolders(folder.ID)
+	folder.SubFolders, err = gs.Access.GetSubFolders(folder.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error reading subfolders for folder %s: %w", folder.Filename, err)
 	}
 
-	folder.Contents.SubFiles, err = gs.GetFilesFor(folderId)
+	folder.SubFiles, err = gs.GetFilesFor(folderId)
 	if err != nil {
 		return nil, fmt.Errorf("error reading subfiles for folder %s: %w", folder.Filename, err)
 	}
@@ -309,14 +324,22 @@ func (gs *GardenService) AddFolder(folder *types.FolderNode, parentID *int64) (i
 	if err != nil {
 		return -1, fmt.Errorf("error adding folder: %w", err)
 	}
-	for i, file := range folder.Contents.SubFiles {
-		folder.Contents.SubFiles[i].ID, err = gs.AddFile(file, id)
+	for i, file := range folder.SubFiles {
+		folder.SubFiles[i].ID, err = gs.AddFile(file, id)
 		if err != nil {
 			log.Println(err.Error())
 			return -1, fmt.Errorf("error adding file: %w", err)
 		}
 	}
 	return id, nil
+}
+
+func (gs *GardenService) ReadFileByID(fileId int64) (*types.FileNode, error) {
+	file, err := gs.Access.GetFileById(fileId)
+	if err != nil {
+		return nil, fmt.Errorf("error reading file: %w", err)
+	}
+	return file, nil
 }
 
 func (gs *GardenService) GetFilesFor(folderId int64) ([]*types.FileNode, error) {
