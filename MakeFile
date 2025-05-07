@@ -1,0 +1,20 @@
+
+run:
+	go run ./app/.
+
+build:
+	go build ./app/. -o bloomhub
+
+test:
+	go test ./app/.
+
+docker deploy:
+	docker compose --profile prod up --detach
+
+docker watch:
+	docker compose watch --profile dev
+
+docker test:
+	docker compose run --profile test
+
+

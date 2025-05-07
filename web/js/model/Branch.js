@@ -24,7 +24,7 @@ export class Branch {
     }
 
     /**
-     * Fetches branch data from the server
+     * Fetches branch data from the http
      * @param {string} branchName
      * @param {number} repoID
      * @returns {Promise<Branch>} A promise that resolves to a Branch object
@@ -46,7 +46,7 @@ export class Branch {
     }
 
     /**
-     * Fetches all branches from the server for a given repository
+     * Fetches all branches from the http for a given repository
      * @param {number} repoID
      * @returns {Promise<Branch[]>} A promise that resolves to an array of Branch objects
      */

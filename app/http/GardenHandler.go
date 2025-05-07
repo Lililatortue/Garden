@@ -1,7 +1,7 @@
-package server
+package http
 
 import (
-	"garden/api"
+	"garden/http/api"
 	"net/http"
 	"strings"
 )

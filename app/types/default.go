@@ -27,7 +27,6 @@ var (
 	DefaultGardenTag = GardenTag{
 		ID:        -1,
 		Parent:    nil,
-		Name:      "",
 		Signature: "",
 		Message:   "",
 		Timestamp: time.UnixMicro(0),

@@ -101,7 +101,6 @@ func (gs *GardenService) InitRepository(repoName string, userId int64) (*types.R
 			Name: "main",
 		}
 		tag = &types.GardenTag{
-			Name:      "main",
 			Signature: "b28b7af69320201d1cf206ebf28373980add1451",
 			Parent:    nil,
 			Message:   "Initial commit",

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"garden/types"
 	"log"
+	"time"
 )
 
 func (db *DBAccess) setup() {
@@ -18,7 +19,7 @@ func (db *DBAccess) setup() {
 	db.mustCreateRepositoryTable()
 	db.mustCreateFolderNodeTable()
 	db.mustCreateGardenTagTable()
-	db.mustCreateFolderNodeTable()
+	db.mustCreateFileNodeTable()
 	db.mustCreateBranchTable()
 
 	// create default user and repository
@@ -180,30 +181,111 @@ func (db *DBAccess) mustSetupDefaultUser() int64 {
 
 }
 
-func (db *DBAccess) mustSetupDefaultRepository(userId int64) int64 {
+func (db *DBAccess) mustSetupDefaultRepository(userId int64) {
 	var (
-		query = `
-			INSERT INTO Repository (name, user_id) 
-			VALUES ($1, $2)
-			ON CONFLICT (name, user_id) DO NOTHING
-			RETURNING id`
-		repo = types.Repository{
-			Name:   "test",
-			UserID: userId,
-		}
+		repo = types.NewRepository(func(repository *types.Repository) {
+			repository.Name = "test"
+			repository.UserID = userId
+			repository.Branches.Push(
+				types.NewBranch(func(branch *types.Branch) {
+					branch.Name = "main"
+					branch.Head = *types.NewGardenTag(func(tag *types.GardenTag) {
+						tag.Signature = "0000000000000000000000000000000000000000"
+						tag.Message = "Initial commit"
+						tag.Timestamp = time.Now()
+						tag.Tree = types.HashTree{
+							FolderNode: *types.NewFolderNode(func(folder *types.FolderNode) {
+								folder.Filename = "test"
+								folder.Signature = "0000000000000000000000000000000000000000"
+								folder.Path = "/"
+								folder.SubFiles.Push(
+									types.NewFileNode(func(file *types.FileNode) {
+										file.Filename = "test1"
+										file.Signature = "0000000000000000000000000000000000000000"
+										file.Content = "test1"
+									}),
+									types.NewFileNode(func(file *types.FileNode) {
+										file.Filename = "test2"
+										file.Signature = "0000000000000000000000000000000000000000"
+										file.Content = "test2"
+									}),
+									types.NewFileNode(func(file *types.FileNode) {
+										file.Filename = "test3"
+										file.Signature = "0000000000000000000000000000000000000000"
+										file.Content = "test3"
+									}),
+								)
+								folder.SubFolders.Push(
+									types.NewFolderNode(func(folder *types.FolderNode) {
+										folder.Filename = "test4"
+										folder.Signature = "0000000000000000000000000000000000000000"
+										folder.Path = "/test4"
+									}),
+									types.NewFolderNode(func(folder *types.FolderNode) {
+										folder.Filename = "test5"
+										folder.Signature = "0000000000000000000000000000000000000000"
+										folder.Path = "/test5"
+										folder.SubFiles.Push(
+											types.NewFileNode(func(file *types.FileNode) {
+												file.Filename = "test6"
+												file.Signature = "0000000000000000000000000000000000000000"
+												file.Content = "test6"
+											}),
+											types.NewFileNode(func(file *types.FileNode) {
+												file.Filename = "test7"
+												file.Signature = "0000000000000000000000000000000000000000"
+												file.Content = "test7"
+											}),
+											types.NewFileNode(func(file *types.FileNode) {
+												file.Filename = "test8"
+												file.Signature = "0000000000000000000000000000000000000000"
+												file.Content = "test8"
+											}),
+										)
+									}),
+								)
+							}),
+						}
+					})
+				}),
+			)
+		})
 	)
 
-	stmt, err := db.Prepare(query)
-	if err != nil {
-		panic(fmt.Errorf("error preparing statement: %w", err))
-	}
-
-	row := stmt.QueryRow(repo.Name, repo.UserID)
-
-	var id int64
-	if err = row.Scan(&id); err != nil {
+	if _, err := db.InsertRepository(repo.Name, repo.UserID); err != nil {
 		panic(fmt.Errorf("error inserting default repository: %w", err))
 	}
 
-	return id
+	for _, branch := range repo.Branches {
+		if _, err := db.InsertBranch(branch, repo.ID); err != nil {
+			panic(fmt.Errorf("error inserting default branch: %w", err))
+		}
+
+		for tag := range branch.Head.IterateToParent() {
+			parentId, err := db.InsertFolder(&tag.Tree.FolderNode, nil)
+			if err != nil {
+				panic(fmt.Errorf("error inserting default folder: %w", err))
+			}
+			tag.Tree.ID = parentId
+
+			tag.Tree.Traverse(func(node *types.FolderNode) {
+				for _, file := range node.SubFiles {
+					id, err := db.InsertFile(file, node.ID)
+					if err != nil {
+						panic(fmt.Errorf("error inserting default file: %w", err))
+					}
+					file.ID = id
+				}
+
+				for _, folder := range node.SubFolders {
+					id, err := db.InsertFolder(folder, &node.ID)
+					if err != nil {
+						panic(fmt.Errorf("error inserting default folder: %w", err))
+					}
+					folder.ID = id
+				}
+			})
+		}
+	}
+
 }

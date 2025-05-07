@@ -15,7 +15,7 @@ form.addEventListener('submit', async function(event) {
     const user = await User.fetchUserData(username);
     console.log(user)
     if (user) {
-        if (user.password === password) {
+        if (user.password == password) {
             user.setUserToSessionStorage();
             window.location.href = "/home.html";
         } else {
@@ -23,6 +23,8 @@ form.addEventListener('submit', async function(event) {
             alert("Incorrect password. Please try again.");
         }
     } else {
+        console.info(user)
         alert("User not found. Please check your username.");
     }
 });
+
