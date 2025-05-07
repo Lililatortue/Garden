@@ -19,7 +19,7 @@ export class User {
     }
 
     /**
-     * Fetches user data from the server using the provided username.
+     * Fetches user data from the http using the provided username.
      * If the user is found, it returns a User object. Otherwise, it returns null.
      * @param {string} username 
      * @returns {Promise<User>} a promise that resolves to a User object
@@ -35,7 +35,7 @@ export class User {
             console.log(data)
             return User.fromJSON(data);
         } catch (error) {
-            console.info(error)
+            console.log(error)
             console.error("Error fetching user data:", error);
             return null;
         }

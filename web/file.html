@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bloomhub Repository</title>
+  <link rel="stylesheet" href="/css/repo.css">
+  <script type="module" src="/js/repo.js" defer></script>
+  <style>
+    .file-content {
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      padding: 20px;
+      background-color: #fff; /* Consistent background */
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap; /* Preserve line breaks */
+      word-break: break-word; /* Prevent long words from overflowing */
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <a href="/home.html" class="avatar username-link" style="background-color: #ccc;"></a>
+    <a id="user-name" class="username-link" href="/home.html">username</a>
+    &nbsp;/&nbsp;
+    <a id="repo-name" class="repo-link" href="/repo.html">repository</a>
+  </header>
+
+  <nav>
+    <a id="code-link" href="/repo.html" class="active ">Code</a>
+  </nav>
+
+  <div id="file-content" class="file-content">
+  </div>
+</div>
+</body>
+</html>

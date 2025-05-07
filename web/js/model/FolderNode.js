@@ -22,8 +22,8 @@ export class FolderNode {
     }
 
     static fromJSON(json) {
-        const subfolders = json.contents.subfolders.map(folder => FolderNode.fromJSON(folder));
-        const subfiles = json.contents.subfiles.map(file => FileNode.fromJSON(file));
+        const subfolders = json.subfolders?.map(folder => FolderNode.fromJSON(folder)) ?? [];
+        const subfiles = json.subfiles?.map(file => FileNode.fromJSON(file)) ?? [];
         return new FolderNode(json.id, json.filename, json.signature, json.path, subfolders, subfiles);
     }
 

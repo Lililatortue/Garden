@@ -31,7 +31,7 @@ export class Repository {
     }
 
     /**
-     * Fetches repository data from the server
+     * Fetches repository data from the http
      * @param {string} repoName - The name of the repository to fetch
      * @param {number} userId - The ID of the user who owns the repository
      * @returns {Promise<Repository>} A promise that resolves to a Repository object

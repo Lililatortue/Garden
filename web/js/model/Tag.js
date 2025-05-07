@@ -40,7 +40,7 @@ export class Tag {
     }
 
     /**
-     * Fetches the tag data from the server
+     * Fetches the tag data from the http
      * @param {number} tagID - The ID of the tag to fetch
      * @returns {Promise<Tag>} - The Tag object or null if not found
      */

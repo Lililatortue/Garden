@@ -2,6 +2,10 @@ services:
 
   bloomhub:
     container_name: bloomhub
+    profiles:
+      - prod
+      - dev
+      - test
     pull_policy: build
     build:
       dockerfile: ./Dockerfile
@@ -21,9 +25,24 @@ services:
     networks:
       - garden-network
 
+  bloomhub_test:
+    container_name: bloomhub-test
+    profiles:
+      - test
+    build:
+      dockerfile: ./test.Dockerfile
+    pull_policy: build
+    depends_on:
+      - db_test
+    networks:
+      - garden-network
+
   
   db:
     container_name: garden-db
+    profiles:
+      - prod
+      - dev
     image: postgres
     hostname: db
     restart: unless-stopped
@@ -38,6 +57,9 @@ services:
 
   db_test:
     container_name: garden-test-db
+    profiles:
+      - test
+      - dev
     image: postgres
     hostname: test_db
     restart: unless-stopped
@@ -52,6 +74,8 @@ services:
 
   pgadmin:
     container_name: pgadmin
+    profiles:
+      - dev
     image: dpage/pgadmin4
     pull_policy: always
     depends_on:

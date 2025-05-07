@@ -5,11 +5,11 @@ import (
 )
 
 type User struct {
-	ID           int64         `json:"id,omitempty" db:"id"`
-	Name         string        `json:"name" db:"name"`
-	Email        string        `json:"email" db:"email"`
-	Password     string        `json:"password" db:"password"`
-	Repositories []*Repository `json:"repositories,omitempty" db:"repositories"`
+	ID           int64            `json:"id,omitempty" db:"id"`
+	Name         string           `json:"name" db:"name"`
+	Email        string           `json:"email" db:"email"`
+	Password     string           `json:"password" db:"password"`
+	Repositories List[Repository] `json:"repositories,omitempty" db:"repositories"`
 }
 
 func NewUser(opts ...func(*User)) *User {
@@ -22,10 +22,10 @@ func NewUser(opts ...func(*User)) *User {
 }
 
 type Repository struct {
-	ID       int64     `json:"id,omitempty" db:"id"`
-	Name     string    `json:"name" db:"name"`
-	UserID   int64     `json:"user_id" db:"user_id"`
-	Branches []*Branch `json:"branches,omitempty" db:"branches"`
+	ID       int64        `json:"id,omitempty" db:"id"`
+	Name     string       `json:"name" db:"name"`
+	UserID   int64        `json:"user_id" db:"user_id"`
+	Branches List[Branch] `json:"branches,omitempty" db:"branches"`
 }
 
 type Branch struct {
@@ -47,7 +47,6 @@ func NewBranch(opts ...func(*Branch)) *Branch {
 type GardenTag struct {
 	ID        int64      `json:"id,omitempty" db:"id"`
 	Parent    *GardenTag `json:"parent,omitempty" db:"parent"`
-	Name      string     `json:"name" db:"name"`
 	Signature string     `json:"signature" db:"signature"`
 	Message   string     `json:"message" db:"message"`
 	Timestamp time.Time  `json:"timestamp" db:"timestamp"`
