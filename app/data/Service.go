@@ -10,7 +10,7 @@ type GardenService struct {
 
 func NewGardenService() *GardenService {
 	return &GardenService{
-		Access: sql.NewDBAccess(),
+		Access: sql.NewDBAccess("garden"),
 	}
 }
 

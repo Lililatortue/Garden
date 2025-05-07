@@ -1,12 +1,10 @@
 import markdownit from 'https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm'
 
-import { User } from "./model/User.js";
-import { Repository } from "./model/Repo.js";
-import { Branch } from "./model/Branch.js";
-import { Tag } from "./model/Tag.js";
-import { HashTree } from "./model/HashTree.js";
-import { FolderNode } from "./model/FolderNode.js";
-import { FileNode } from "./model/FileNode.js";
+import {User} from "./model/User.js";
+import {Repository} from "./model/Repo.js";
+import {Branch} from "./model/Branch.js";
+import {Tag} from "./model/Tag.js";
+import {HashTree} from "./model/HashTree.js";
 
 var user = null
 if (User.isLoggedIn()) {
@@ -43,9 +41,14 @@ const repoTitle = document.getElementById("repo-name")
 const repoBranches = document.getElementById("repo-branches")
 const repoContent = document.getElementById("repo-content")
 const readmeContainer = document.getElementById("readme-container")
+const codeLink = document.getElementById("code-link")
 
-usernameTitle.innerText = user.name
+
+usernameTitle.innerText = user?.name
 repoTitle.innerText = repo.name
+repoTitle.href = `/repo.html?username=${user?.name}&repo=${repoName}`
+codeLink.href = `/repo.html?username=${user?.name}&repo=${repoName}`
+
 
 const tag = await Tag.fetchTagData(branch.head.id)
 if (tag === null || tag === undefined) {
@@ -74,7 +77,7 @@ HashTree.fetchHashTreeData(tag.tree.folder_node.id)
         fileName.innerText = folder.filename
         fileListItem.appendChild(fileName)
         fileListItem.addEventListener("click", () => {
-            window.location.href = `/dir.html?repo=${repoName}&branch=${branchName}&folder=${folder.filename}&parent=${tree.folder_node.id}`
+            window.location.href = `/dir.html?repo=${repoName}&branch=${branchName}&folder=${folder.id}&parent=${tree.folder_node.id}`
         })
         repoContent.appendChild(fileListItem)
     })
@@ -103,8 +106,7 @@ HashTree.fetchHashTreeData(tag.tree.folder_node.id)
     if (readmeFile) {
         console.log("README.md found")
         const md = markdownit()
-        const renderedReadme = md.render(readmeFile.content)
-        readmeContainer.innerHTML = renderedReadme
+        readmeContainer.innerHTML = md.render(readmeFile.content)
     } else {
         console.log("README.md not found")
         readmeContainer.innerHTML = "<p>No README.md found</p>"

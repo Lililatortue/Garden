@@ -14,6 +14,8 @@ services:
         - action: sync+restart
           path: ./web
           target: /app/web
+#    volumes:
+#      - ./web:/app/web   #map your frontend
     ports:
       - 80:80
     networks:
@@ -34,9 +36,24 @@ services:
     networks:
       - garden-network
 
+  db_test:
+    container_name: garden-test-db
+    image: postgres
+    hostname: test_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: db #${GARDEN_DB_USER}
+      POSTGRES_PASSWORD: db #${GARDEN_DB_PASSWORD}
+      POSTGRES_DB: garden_test #${GARDEN_DB_NAME}
+#    ports:
+#      - 5432:5432
+    networks:
+      - garden-network
+
   pgadmin:
     container_name: pgadmin
     image: dpage/pgadmin4
+    pull_policy: always
     depends_on:
       - db
     restart: unless-stopped

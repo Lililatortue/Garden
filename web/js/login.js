@@ -19,6 +19,7 @@ form.addEventListener('submit', async function(event) {
             user.setUserToSessionStorage();
             window.location.href = "/home.html";
         } else {
+            alert("'" + user.password + "' != '" + password + "'")
             alert("Incorrect password. Please try again.");
         }
     } else {

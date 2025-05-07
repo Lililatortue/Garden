@@ -14,21 +14,21 @@ func (db *DBAccess) setup() {
 		}
 	}()
 
-	db.createUserTable()
-	db.createRepositoryTable()
-	db.createFolderNodeTable()
-	db.createGardenTagTable()
-	db.createFileNodeTable()
-	db.createBranchTable()
+	db.mustCreateUserTable()
+	db.mustCreateRepositoryTable()
+	db.mustCreateFolderNodeTable()
+	db.mustCreateGardenTagTable()
+	db.mustCreateFolderNodeTable()
+	db.mustCreateBranchTable()
 
 	// create default user and repository
-	userId := db.setupDefaultUser()
-	db.setupDefaultRepository(userId)
+	userId := db.mustSetupDefaultUser()
+	db.mustSetupDefaultRepository(userId)
 
 	log.Println("DB setup complete")
 }
 
-func (db *DBAccess) createGardenTagTable() {
+func (db *DBAccess) mustCreateGardenTagTable() {
 	query := `CREATE TABLE IF NOT EXISTS GardenTag (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,
@@ -52,7 +52,7 @@ func (db *DBAccess) createGardenTagTable() {
 	}
 }
 
-func (db *DBAccess) createFolderNodeTable() {
+func (db *DBAccess) mustCreateFolderNodeTable() {
 	query := `CREATE TABLE IF NOT EXISTS FolderNode (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,  
@@ -70,7 +70,7 @@ func (db *DBAccess) createFolderNodeTable() {
 	}
 }
 
-func (db *DBAccess) createBranchTable() {
+func (db *DBAccess) mustCreateBranchTable() {
 	query := `CREATE TABLE IF NOT EXISTS Branch (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,  
@@ -94,7 +94,7 @@ func (db *DBAccess) createBranchTable() {
 	}
 }
 
-func (db *DBAccess) createFileNodeTable() {
+func (db *DBAccess) mustCreateFileNodeTable() {
 	query := `CREATE TABLE IF NOT EXISTS FileNode (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,  
@@ -114,7 +114,7 @@ func (db *DBAccess) createFileNodeTable() {
 	}
 }
 
-func (db *DBAccess) createUserTable() {
+func (db *DBAccess) mustCreateUserTable() {
 	query := `CREATE TABLE IF NOT EXISTS GardenUser (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,
@@ -130,7 +130,7 @@ func (db *DBAccess) createUserTable() {
 	}
 }
 
-func (db *DBAccess) createRepositoryTable() {
+func (db *DBAccess) mustCreateRepositoryTable() {
 	query := `CREATE TABLE IF NOT EXISTS Repository (
 			id INTEGER PRIMARY KEY
 				GENERATED ALWAYS AS IDENTITY,
@@ -150,7 +150,7 @@ func (db *DBAccess) createRepositoryTable() {
 	}
 }
 
-func (db *DBAccess) setupDefaultUser() int64 {
+func (db *DBAccess) mustSetupDefaultUser() int64 {
 	var (
 		query = `
 			INSERT INTO GardenUser (username, password, email) 
@@ -180,7 +180,7 @@ func (db *DBAccess) setupDefaultUser() int64 {
 
 }
 
-func (db *DBAccess) setupDefaultRepository(userId int64) int64 {
+func (db *DBAccess) mustSetupDefaultRepository(userId int64) int64 {
 	var (
 		query = `
 			INSERT INTO Repository (name, user_id) 

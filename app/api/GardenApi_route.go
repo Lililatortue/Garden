@@ -1,7 +1,9 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"garden/types"
 	"log"
 	"net/http"
@@ -11,13 +13,14 @@ import (
 func (api *GardenApi) setRoutes() {
 	api.HandleFunc("GET /api/test", api.handleTest)
 	api.HandleFunc("POST /api/test", api.handleTest)
-	api.HandleFunc("POST /api/v1/{username}/{repo}/{branch}", api.handlePush)
+	api.HandleFunc("POST /api/v1/push/{username}/{repo}/{branch}", api.handlePush)
 	api.HandleFunc("GET /api/v1/user/{username}", api.handleGetUser)
 	api.HandleFunc("GET /api/v1/repo/{repoName}", api.handleGetRepository)
 	api.HandleFunc("GET /api/v1/branch/{branchname}", api.handleGetBranch)
 	api.HandleFunc("GET /api/v1/branches", api.handleGetBranchesFromRepo)
 	api.HandleFunc("GET /api/v1/tag/{id}", api.handleGetTag)
 	api.HandleFunc("GET /api/v1/hashtree/{id}", api.handleGetHashtree)
+	api.HandleFunc("GET /api/v1/file/{id}", api.handleGetFile)
 }
 
 func (api *GardenApi) handleTest(w http.ResponseWriter, r *http.Request) {
@@ -33,8 +36,6 @@ func (api *GardenApi) handleTest(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func (api *GardenApi) handlePush(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +44,16 @@ func (api *GardenApi) handlePush(w http.ResponseWriter, r *http.Request) {
 		repoName   = r.PathValue("repo")
 		branchName = r.PathValue("branch")
 	)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println(r)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"message": "Error writing response",
+				"error":   r.(error).Error(),
+			})
+		}
+	}()
 	w.Header().Set("Content-Type", "application/json")
 	log.Println("Pushed route called for user", username, " repo", repoName, " branch", branchName)
 
@@ -50,8 +61,16 @@ func (api *GardenApi) handlePush(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&tag); err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"message": "Error decoding request body",
+			"error":   err.Error(),
+			"ok":      false,
+		})
 		return
 	}
+	marshed, _ := json.MarshalIndent(tag, "\n", "\t")
+	log.Printf("Tag: %s", marshed)
+
 	user, err := api.repoManager.ReadUserByUsername(username)
 	if err != nil {
 		log.Println(err.Error())
@@ -76,9 +95,9 @@ func (api *GardenApi) handlePush(w http.ResponseWriter, r *http.Request) {
 	if branch == nil {
 		branch = &types.Branch{
 			Name: branchName,
-			Head: &tag,
+			Head: tag,
 		}
-		_, err := api.repoManager.AddBranch(branch, repo.ID)
+		branchID, err := api.repoManager.AddBranch(branch, repo.ID)
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -87,6 +106,7 @@ func (api *GardenApi) handlePush(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+		branch.ID = branchID
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"message": "Branch created",
@@ -108,8 +128,8 @@ func (api *GardenApi) handlePush(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	tag.Parent = branch.Head
-	branch.Head = &tag
+	tag.Parent = &branch.Head
+	branch.Head = tag
 	tagId, err := api.repoManager.AddTag(&tag)
 	if err != nil {
 		log.Println(err.Error())
@@ -399,4 +419,70 @@ func (api *GardenApi) handleGetHashtree(w http.ResponseWriter, r *http.Request) 
 	}
 
 	log.Printf("Tag found: %#v\n", tree)
+}
+
+func (api *GardenApi) handleHeadFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+}
+
+func (api *GardenApi) handleGetFile(w http.ResponseWriter, r *http.Request) {
+	var (
+		fileId = r.PathValue("id")
+	)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Recovered in handleGetFile", r)
+			_ = json.NewEncoder(w).Encode(r)
+		}
+	}()
+
+	api.handleHeadFile(w, r)
+
+	log.Println("Get file route called for file", fileId)
+
+	if fileId == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		panic(map[string]any{
+			"message": "Missing file id in query",
+			"file":    fileId,
+			"error":   errors.New("missing file id in query"),
+		})
+	}
+
+	id, err := strconv.ParseInt(fileId, 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		panic(map[string]any{
+			"message": "Invalid file id",
+			"file":    fileId,
+			"error":   errors.New("invalid file id"),
+		})
+	}
+
+	file, err := api.repoManager.ReadFileByID(id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusNotFound)
+			panic(map[string]any{
+				"message": "File not found",
+				"file":    fileId,
+				"error":   err,
+			})
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		panic(map[string]any{
+			"message": "Error reading file from database",
+			"file":    fileId,
+			"error":   err,
+		})
+	}
+
+	if err := json.NewEncoder(w).Encode(file); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "Error writing response",
+		})
+		return
+	}
 }

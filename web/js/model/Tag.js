@@ -42,7 +42,7 @@ export class Tag {
     /**
      * Fetches the tag data from the server
      * @param {number} tagID - The ID of the tag to fetch
-     * @returns {Tag} - The Tag object or null if not found
+     * @returns {Promise<Tag>} - The Tag object or null if not found
      */
     static async fetchTagData(tagID) {
         try {

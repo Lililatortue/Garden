@@ -11,8 +11,8 @@ type DBAccess struct {
 	*sql.DB
 }
 
-func NewDBAccess() *DBAccess {
-	connStr := getConnectionString("db", "db", "db", "5432", "garden")
+func NewDBAccess(database string) *DBAccess {
+	connStr := getConnectionString("db", "db", "db", "5432", database)
 	conn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(fmt.Errorf("error opening DB connection: %w", err))

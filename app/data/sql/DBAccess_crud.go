@@ -48,7 +48,7 @@ func (db *DBAccess) GetUserByEmail(email string) (*types.User, error) {
 			return nil, fmt.Errorf("error scanning user: %w", err)
 		}
 	}
-	return &user, nil
+	return user, nil
 }
 
 func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
@@ -87,7 +87,7 @@ func (db *DBAccess) GetUserByUsername(username string) (*types.User, error) {
 		}
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 func (db *DBAccess) InsertUser(user *types.User) (int64, error) {
@@ -467,7 +467,13 @@ func (db *DBAccess) InsertGardenTag(tag *types.GardenTag) (int64, error) {
     				(parent_id, signature, message, timestamp, tree_id) 
 				 VALUES ($1, $2, $3, $4, $5)
 				 RETURNING id`
-		params = []any{tag.Parent.ID, tag.Signature, tag.Message, tag.Timestamp, tag.Tree.ID}
+		params = []any{
+			tag.Parent.ID,
+			tag.Signature,
+			tag.Message,
+			tag.Timestamp,
+			tag.Tree.ID,
+		}
 	}
 
 	stmt, err := db.Prepare(query)
@@ -481,7 +487,7 @@ func (db *DBAccess) InsertGardenTag(tag *types.GardenTag) (int64, error) {
 		}
 	}(stmt)
 
-	row := stmt.QueryRow(params)
+	row := stmt.QueryRow(params...)
 
 	var id int64
 	err = row.Scan(&id)
@@ -540,21 +546,18 @@ func (db *DBAccess) GetFolder(folderId int64) (*types.FolderNode, error) {
 	return folder, nil
 }
 
-func (db *DBAccess) GetSubFolders(treeId int64) ([]*types.FolderNode, error) {
+func (db *DBAccess) GetSubFolders(treeId int64) (folders []*types.FolderNode, err error) {
 	var (
-		folders = make([]*types.FolderNode, 0)
-		query   = `SELECT id, signature, name FROM FolderNode WHERE parent_id = $1`
+		query = `SELECT id, signature, name FROM FolderNode WHERE parent_id = $1`
 	)
+	folders = make([]*types.FolderNode, 0)
 
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
 	defer func(stmt *sql.Stmt) {
-		err := stmt.Close()
-		if err != nil {
-			log.Println(err.Error())
-		}
+		err = stmt.Close()
 	}(stmt)
 
 	rows, err := stmt.Query(treeId)
@@ -562,10 +565,7 @@ func (db *DBAccess) GetSubFolders(treeId int64) ([]*types.FolderNode, error) {
 		return nil, fmt.Errorf("error executing statement: %w", err)
 	}
 	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-			log.Println(err.Error())
-		}
+		err = rows.Close()
 	}(rows)
 
 	for rows.Next() {
@@ -586,9 +586,13 @@ func (db *DBAccess) GetSubFolders(treeId int64) ([]*types.FolderNode, error) {
 }
 
 func (db *DBAccess) InsertFolder(folder *types.FolderNode, parentID *int64) (int64, error) {
+	log.Printf("Inserting folder %#v", folder)
 	var (
 		query  string
-		params = []interface{}{folder.Signature, folder.Filename}
+		params = []any{
+			folder.Signature,
+			folder.Filename,
+		}
 	)
 	if parentID == nil {
 		query = `INSERT INTO FolderNode (signature, name) VALUES ($1, $2) RETURNING id`
@@ -618,6 +622,32 @@ func (db *DBAccess) InsertFolder(folder *types.FolderNode, parentID *int64) (int
 	}
 
 	return id, nil
+}
+
+func (db *DBAccess) GetFileById(fileId int64) (*types.FileNode, error) {
+	var (
+		file = types.NewFileNode(func(file *types.FileNode) {
+			file.ID = fileId
+		})
+		query = `SELECT id, signature, name, content FROM FileNode WHERE id = $1`
+	)
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("error preparing statement: %w", err)
+	}
+
+	err = stmt.QueryRow(fileId).Scan(
+		&file.ID,
+		&file.Signature,
+		&file.Filename,
+		&file.Content,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error scanning file: %w", err)
+	}
+
+	return file, nil
 }
 
 func (db *DBAccess) GetFilesFor(folderId int64) ([]*types.FileNode, error) {

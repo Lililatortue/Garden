@@ -20,7 +20,7 @@ func NewGardenApi() *GardenApi {
 	mux := &GardenApi{
 		ServeMux: http.NewServeMux(),
 		repoManager: data.NewRepoWith(
-			sql.NewDBAccess(),
+			sql.NewDBAccess("garden"),
 		),
 	}
 
